@@ -1,27 +1,54 @@
 import { Link } from 'react-router-dom'
-import { User, LogOut, History, HelpCircle, Settings, ChevronRight } from 'lucide-react'
+import { User as UserIcon, LogOut, History, HelpCircle, Settings, ChevronRight, Crown, Edit2 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 
+const tierLabels = {
+  free: '免費會員',
+  premium: '高級會員',
+  vip: 'VIP會員'
+}
+
+const tierColors = {
+  free: 'text-gray-400',
+  premium: 'text-primary-500',
+  vip: 'text-yellow-500'
+}
+
+const genderLabels = {
+  male: '男',
+  female: '女',
+  other: '其他',
+  prefer_not_to_say: '不透露'
+}
+
 export default function Profile() {
-  const { isLoggedIn, userName, userPhone, logout, activePasses, getActivePass } = useStore()
+  const { isLoggedIn, user, logout, activePasses, getActivePass } = useStore()
   const activePass = getActivePass()
 
-  if (!isLoggedIn) {
+  if (!isLoggedIn || !user) {
     return (
       <div className="space-y-6">
         <div className="text-center py-8">
           <div className="w-20 h-20 rounded-full bg-gray-800 flex items-center justify-center mx-auto mb-4">
-            <User className="w-10 h-10 text-gray-500" />
+            <UserIcon className="w-10 h-10 text-gray-500" />
           </div>
           <h2 className="text-xl font-semibold mb-2">尚未登入</h2>
-          <p className="text-gray-400 text-sm">加入會員即可獲取折扣卡</p>
+          <p className="text-gray-400 text-sm">登入或註冊以預約酒吧</p>
         </div>
-        <Link
-          to="/membership"
-          className="block w-full text-center bg-gradient-to-r from-primary-500 to-primary-600 text-dark-900 font-semibold py-3 rounded-xl"
-        >
-          立即加入會員
-        </Link>
+        <div className="space-y-3">
+          <Link
+            to="/login"
+            className="block w-full text-center bg-gradient-to-r from-primary-500 to-primary-600 text-dark-900 font-semibold py-3 rounded-xl"
+          >
+            登入
+          </Link>
+          <Link
+            to="/register"
+            className="block w-full text-center glass border border-primary-500/50 text-primary-500 font-semibold py-3 rounded-xl"
+          >
+            註冊新帳號
+          </Link>
+        </div>
       </div>
     )
   }
@@ -41,41 +68,68 @@ export default function Profile() {
       {/* Profile Header */}
       <div className="glass rounded-2xl p-6">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
-            <span className="text-2xl font-bold text-dark-900">
-              {userName.charAt(0).toUpperCase()}
-            </span>
+          <div className="relative">
+            {user.avatar ? (
+              <img 
+                src={user.avatar} 
+                alt="Avatar" 
+                className="w-16 h-16 rounded-full bg-dark-800"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
+                <span className="text-2xl font-bold text-dark-900">
+                  {(user.displayName || user.name).charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+            {user.membershipTier !== 'free' && (
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
+                <Crown className="w-3 h-3 text-dark-900" />
+              </div>
+            )}
           </div>
-          <div>
-            <h2 className="text-xl font-semibold">{userName}</h2>
-            <p className="text-gray-400 text-sm">{userPhone}</p>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold">{user.displayName || user.name}</h2>
+              {user.gender && (
+                <span className="text-xs bg-dark-800 px-2 py-0.5 rounded text-gray-400">
+                  {genderLabels[user.gender]}
+                </span>
+              )}
+            </div>
+            <p className="text-gray-400 text-sm">{user.email}</p>
+            <p className={`text-sm ${tierColors[user.membershipTier]}`}>
+              {tierLabels[user.membershipTier]}
+            </p>
           </div>
+          <Link to="/edit-profile" className="p-2 rounded-full glass hover:bg-white/10">
+            <Edit2 className="w-5 h-5 text-gray-400" />
+          </Link>
         </div>
       </div>
 
-      {/* Current Membership */}
+      {/* Current Pass */}
       {activePass ? (
         <div className="glass rounded-xl p-4 border border-green-500/30">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-400 font-medium">{activePass.planName}</p>
-              <p className="text-sm text-gray-400">HK${activePass.credit} 消費額度</p>
+              <p className="text-green-400 font-medium">{activePass.barName}</p>
+              <p className="text-sm text-gray-400">{activePass.personCount} 人暢飲通行證</p>
             </div>
-            <div className="flex items-center gap-1 text-green-400">
-              <span className="text-sm">HK$</span>
-              <span className="text-2xl font-bold">{activePass.credit}</span>
-            </div>
+            <Link to="/my-pass" className="text-green-500 text-sm">
+              查看 →
+            </Link>
           </div>
         </div>
       ) : (
         <Link
-          to="/membership"
+          to="/districts"
           className="block glass rounded-xl p-4 border border-primary-500/30 hover:border-primary-500/50 transition-all"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">加入會員</p>
-              <p className="text-sm text-gray-400">獲取折扣優惠</p>
+              <p className="font-medium">預約酒吧</p>
+              <p className="text-sm text-gray-400">暢飲通行證</p>
             </div>
             <ChevronRight className="w-5 h-5 text-primary-500" />
           </div>
@@ -86,11 +140,11 @@ export default function Profile() {
       <div className="grid grid-cols-2 gap-4">
         <div className="glass rounded-xl p-4 text-center">
           <p className="text-3xl font-bold text-primary-500">{validPassCount}</p>
-          <p className="text-sm text-gray-400">有效折扣卡</p>
+          <p className="text-sm text-gray-400">有效通行證</p>
         </div>
         <div className="glass rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-primary-500">{activePasses.length}</p>
-          <p className="text-sm text-gray-400">總記錄</p>
+          <p className="text-3xl font-bold text-primary-500">{user.totalVisits}</p>
+          <p className="text-sm text-gray-400">總到訪次數</p>
         </div>
       </div>
 
@@ -102,7 +156,7 @@ export default function Profile() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">查看折扣卡</p>
+              <p className="font-medium">查看通行證</p>
               <p className="text-sm text-gray-400">出示QR碼給酒吧掃描</p>
             </div>
             <ChevronRight className="w-5 h-5 text-green-500" />

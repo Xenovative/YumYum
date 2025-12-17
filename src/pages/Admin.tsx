@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, QrCode, CheckCircle, XCircle, Clock, Users, Store, CreditCard, Plus, Pencil, Trash2, X, Lock, LogOut } from 'lucide-react'
+import { ArrowLeft, QrCode, CheckCircle, XCircle, Clock, Store, CreditCard, Plus, Pencil, Trash2, X, Lock, LogOut, PartyPopper, UserCog, DollarSign, Crown, Ban, Star, Settings } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { districts } from '../data/districts'
 import { Bar } from '../types'
 import { format } from 'date-fns'
-import { zhTW } from 'date-fns/locale'
 
 // Admin credentials (in production, use env vars or backend auth)
 const ADMIN_PASSWORD = 'yumyum2024'
@@ -17,10 +16,25 @@ export default function Admin() {
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
   
-  const [activeTab, setActiveTab] = useState<'scanner' | 'stats' | 'bars'>('scanner')
+  const [activeTab, setActiveTab] = useState<'payments' | 'parties' | 'members' | 'bars' | 'settings'>('payments')
   const [scanResult, setScanResult] = useState<any>(null)
   const [manualCode, setManualCode] = useState('')
-  const { activePasses, bars, addBar, updateBar, removeBar } = useStore()
+  const store = useStore()
+  const { activePasses, bars, addBar, updateBar, removeBar, parties, cancelParty, members, updateMember, removeMember, toggleFeaturedBar, paymentSettings, updatePaymentSettings } = store
+  const featuredBarIds = store.featuredBarIds || []
+
+  // Bar form state - must be declared before any early returns
+  const [showBarForm, setShowBarForm] = useState(false)
+  const [editingBar, setEditingBar] = useState<Bar | null>(null)
+  const [barForm, setBarForm] = useState({
+    name: '',
+    nameEn: '',
+    districtId: '',
+    address: '',
+    image: 'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?w=400',
+    rating: 4.0,
+    drinks: ''
+  })
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,19 +97,6 @@ export default function Admin() {
       </div>
     )
   }
-  
-  // Bar form state
-  const [showBarForm, setShowBarForm] = useState(false)
-  const [editingBar, setEditingBar] = useState<Bar | null>(null)
-  const [barForm, setBarForm] = useState({
-    name: '',
-    nameEn: '',
-    districtId: '',
-    address: '',
-    image: 'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?w=400',
-    rating: 4.0,
-    drinks: ''
-  })
 
   const resetBarForm = () => {
     setBarForm({
@@ -196,9 +197,11 @@ export default function Admin() {
   }).length
 
   const tabs = [
-    { id: 'scanner', label: '掃碼驗證', icon: QrCode },
-    { id: 'stats', label: '數據統計', icon: Users },
+    { id: 'payments', label: '付款管理', icon: DollarSign },
+    { id: 'parties', label: '酒局管理', icon: PartyPopper },
+    { id: 'members', label: '會員管理', icon: UserCog },
     { id: 'bars', label: '酒吧管理', icon: Store },
+    { id: 'settings', label: '付款設定', icon: Settings },
   ] as const
 
   return (
@@ -238,105 +241,15 @@ export default function Admin() {
         ))}
       </div>
 
-      {/* Scanner Tab */}
-      {activeTab === 'scanner' && (
-        <div className="space-y-6">
-          <div className="glass rounded-xl p-6">
-            <h2 className="font-semibold mb-4 flex items-center gap-2">
-              <QrCode className="w-5 h-5 text-primary-500" />
-              QR碼驗證
-            </h2>
-            
-            <form onSubmit={handleManualSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">輸入QR碼內容</label>
-                <textarea
-                  value={manualCode}
-                  onChange={(e) => setManualCode(e.target.value)}
-                  className="w-full bg-dark-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-primary-500 h-32 font-mono text-sm"
-                  placeholder='掃描或貼上QR碼JSON內容...'
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-primary-500 text-dark-900 font-semibold py-3 rounded-lg"
-              >
-                驗證
-              </button>
-            </form>
-          </div>
-
-          {/* Scan Result */}
-          {scanResult && (
-            <div className={`glass rounded-xl p-6 border ${
-              scanResult.isValid ? 'border-green-500/50' : 'border-red-500/50'
-            }`}>
-              <div className="flex items-center gap-3 mb-4">
-                {scanResult.isValid ? (
-                  <CheckCircle className="w-8 h-8 text-green-500" />
-                ) : (
-                  <XCircle className="w-8 h-8 text-red-500" />
-                )}
-                <div>
-                  <h3 className={`font-bold text-lg ${scanResult.isValid ? 'text-green-400' : 'text-red-400'}`}>
-                    {scanResult.isValid ? '有效優惠卡' : '無效優惠卡'}
-                  </h3>
-                  <p className="text-sm text-gray-400">
-                    {scanResult.status === 'expired' ? '已過期' : scanResult.error || '驗證成功'}
-                  </p>
-                </div>
-              </div>
-
-              {scanResult.isValid && (
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">用戶</span>
-                    <span>{scanResult.userName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">電話</span>
-                    <span>{scanResult.userPhone}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">消費額度</span>
-                    <span className="text-primary-500 font-bold">HK${scanResult.credit}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">到期時間</span>
-                    <span>{format(new Date(scanResult.expiry), 'yyyy/MM/dd HH:mm', { locale: zhTW })}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">驗證碼</span>
-                    <span className="font-mono">{scanResult.code}</span>
-                  </div>
-                </div>
-              )}
-
-              {scanResult.isValid && (
-                <button
-                  onClick={() => {
-                    alert(`已確認使用 HK$${scanResult.credit} 優惠\n用戶: ${scanResult.userName}`)
-                    setScanResult(null)
-                    setManualCode('')
-                  }}
-                  className="w-full mt-4 bg-green-500 text-white font-semibold py-3 rounded-lg"
-                >
-                  確認使用優惠
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Stats Tab */}
-      {activeTab === 'stats' && (
+      {/* Payments Tab */}
+      {activeTab === 'payments' && (
         <div className="space-y-4">
+          {/* Stats Overview */}
           <div className="grid grid-cols-2 gap-4">
             <div className="glass rounded-xl p-4 text-center">
               <CreditCard className="w-8 h-8 text-primary-500 mx-auto mb-2" />
               <p className="text-3xl font-bold">{totalPasses}</p>
-              <p className="text-sm text-gray-400">總發卡數</p>
+              <p className="text-sm text-gray-400">總交易數</p>
             </div>
             <div className="glass rounded-xl p-4 text-center">
               <Clock className="w-8 h-8 text-green-500 mx-auto mb-2" />
@@ -344,29 +257,280 @@ export default function Admin() {
               <p className="text-sm text-gray-400">24小時內</p>
             </div>
             <div className="glass rounded-xl p-4 text-center">
-              <Store className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-              <p className="text-3xl font-bold">{bars.length}</p>
-              <p className="text-sm text-gray-400">合作酒吧</p>
+              <DollarSign className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+              <p className="text-3xl font-bold">HK${activePasses.reduce((sum, p) => sum + (p.platformFee || 0), 0)}</p>
+              <p className="text-sm text-gray-400">平台收入</p>
             </div>
             <div className="glass rounded-xl p-4 text-center">
-              <Users className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-              <p className="text-3xl font-bold">{districts.length}</p>
-              <p className="text-sm text-gray-400">覆蓋地區</p>
+              <Store className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+              <p className="text-3xl font-bold">HK${activePasses.reduce((sum, p) => sum + (p.barPayment || 0), 0)}</p>
+              <p className="text-sm text-gray-400">酒吧待收</p>
             </div>
           </div>
 
+          {/* QR Scanner */}
           <div className="glass rounded-xl p-4">
-            <h3 className="font-semibold mb-3">最近發卡記錄</h3>
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-primary-500" />
+              QR碼驗證
+            </h3>
+            <form onSubmit={handleManualSubmit} className="space-y-3">
+              <textarea
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value)}
+                className="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-primary-500 h-20 font-mono text-xs"
+                placeholder='貼上QR碼JSON內容...'
+              />
+              <button type="submit" className="w-full bg-primary-500 text-dark-900 font-semibold py-2 rounded-lg text-sm">
+                驗證
+              </button>
+            </form>
+            {scanResult && (
+              <div className={`mt-3 p-3 rounded-lg ${scanResult.isValid ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                <div className="flex items-center gap-2">
+                  {scanResult.isValid ? <CheckCircle className="w-5 h-5 text-green-500" /> : <XCircle className="w-5 h-5 text-red-500" />}
+                  <span className={scanResult.isValid ? 'text-green-400' : 'text-red-400'}>
+                    {scanResult.isValid ? '有效通行證' : '無效'}
+                  </span>
+                </div>
+                {scanResult.isValid && (
+                  <div className="mt-2 text-sm space-y-1">
+                    <p>用戶: {scanResult.userName}</p>
+                    <p>酒吧: {scanResult.barName}</p>
+                    <p>人數: {scanResult.personCount}</p>
+                    <p>待付: HK${scanResult.barPayment}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Transaction History */}
+          <div className="glass rounded-xl p-4">
+            <h3 className="font-semibold mb-3">交易記錄</h3>
             {activePasses.length === 0 ? (
               <p className="text-gray-400 text-sm">暫無記錄</p>
             ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {[...activePasses].reverse().map((pass) => (
+                  <div key={pass.id} className="flex justify-between items-center text-sm py-2 border-b border-gray-800 last:border-0">
+                    <div>
+                      <p className="font-medium">{pass.barName}</p>
+                      <p className="text-xs text-gray-500">{pass.personCount}人 · 平台收 HK${pass.platformFee}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-primary-500 font-medium">HK${pass.totalPrice}</p>
+                      <p className="text-xs text-gray-500">{format(new Date(pass.purchaseTime), 'MM/dd HH:mm')}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Parties Tab */}
+      {activeTab === 'parties' && (
+        <div className="space-y-4">
+          {/* Party Stats */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="glass rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold text-green-500">{parties.filter(p => p.status === 'open').length}</p>
+              <p className="text-xs text-gray-400">招募中</p>
+            </div>
+            <div className="glass rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold text-yellow-500">{parties.filter(p => p.status === 'full').length}</p>
+              <p className="text-xs text-gray-400">已滿</p>
+            </div>
+            <div className="glass rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold">{parties.length}</p>
+              <p className="text-xs text-gray-400">總數</p>
+            </div>
+          </div>
+
+          {/* Party List */}
+          <div className="glass rounded-xl p-4">
+            <h3 className="font-semibold mb-3">所有酒局</h3>
+            {parties.length === 0 ? (
+              <p className="text-gray-400 text-sm">暫無酒局</p>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {[...parties].reverse().map((party) => (
+                  <div key={party.id} className="p-3 bg-dark-800 rounded-lg">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">{party.title}</p>
+                        <p className="text-xs text-gray-500">
+                          主辦: {party.hostDisplayName || party.hostName}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {party.barName} · {format(new Date(party.partyTime), 'MM/dd HH:mm')}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          party.status === 'open' ? 'bg-green-500/20 text-green-400' :
+                          party.status === 'full' ? 'bg-yellow-500/20 text-yellow-400' :
+                          party.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                          'bg-gray-500/20 text-gray-400'
+                        }`}>
+                          {party.status === 'open' ? '招募中' : 
+                           party.status === 'full' ? '已滿' : 
+                           party.status === 'cancelled' ? '已取消' : party.status}
+                        </span>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {party.currentGuests.length}/{party.maxFemaleGuests} 人
+                        </p>
+                      </div>
+                    </div>
+                    {party.currentGuests.length > 0 && (
+                      <div className="mt-2 flex gap-1">
+                        {party.currentGuests.map(g => (
+                          <div key={g.userId} className="w-6 h-6 rounded-full bg-pink-500/20 flex items-center justify-center text-xs text-pink-400">
+                            {(g.displayName || g.name).charAt(0)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {party.status === 'open' && (
+                      <button
+                        onClick={() => {
+                          if (confirm('確定要取消此酒局嗎？')) {
+                            cancelParty(party.id)
+                          }
+                        }}
+                        className="mt-2 text-xs text-red-400 hover:text-red-300"
+                      >
+                        取消酒局
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Members Tab */}
+      {activeTab === 'members' && (
+        <div className="space-y-4">
+          {/* Member Stats */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="glass rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold text-primary-500">{members.length}</p>
+              <p className="text-xs text-gray-400">總會員</p>
+            </div>
+            <div className="glass rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold text-blue-500">{members.filter(m => m.gender === 'male').length}</p>
+              <p className="text-xs text-gray-400">男性</p>
+            </div>
+            <div className="glass rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold text-pink-500">{members.filter(m => m.gender === 'female').length}</p>
+              <p className="text-xs text-gray-400">女性</p>
+            </div>
+          </div>
+
+          {/* Member List */}
+          <div className="glass rounded-xl p-4">
+            <h3 className="font-semibold mb-3">會員列表 ({members.length})</h3>
+            {members.length === 0 ? (
+              <p className="text-gray-400 text-sm">暫無會員</p>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {[...members].reverse().map((member) => (
+                  <div key={member.id} className="p-3 bg-dark-800 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      {member.avatar ? (
+                        <img src={member.avatar} alt="" className="w-10 h-10 rounded-full bg-dark-700" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
+                          <span className="text-sm font-bold text-dark-900">
+                            {(member.displayName || member.name).charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium truncate">{member.displayName || member.name}</p>
+                          {member.gender && (
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${
+                              member.gender === 'male' ? 'bg-blue-500/20 text-blue-400' :
+                              member.gender === 'female' ? 'bg-pink-500/20 text-pink-400' :
+                              'bg-gray-500/20 text-gray-400'
+                            }`}>
+                              {member.gender === 'male' ? '男' : member.gender === 'female' ? '女' : '其他'}
+                            </span>
+                          )}
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${
+                            member.membershipTier === 'vip' ? 'bg-yellow-500/20 text-yellow-400' :
+                            member.membershipTier === 'premium' ? 'bg-primary-500/20 text-primary-400' :
+                            'bg-gray-500/20 text-gray-400'
+                          }`}>
+                            {member.membershipTier === 'vip' ? 'VIP' : 
+                             member.membershipTier === 'premium' ? '高級' : '免費'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                        <p className="text-xs text-gray-600">
+                          {member.phone || '無電話'} · 註冊: {format(new Date(member.joinedAt), 'MM/dd')}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-gray-700">
+                      <button
+                        onClick={() => {
+                          const newTier = member.membershipTier === 'free' ? 'premium' : 
+                                         member.membershipTier === 'premium' ? 'vip' : 'free'
+                          updateMember(member.id, { membershipTier: newTier })
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded text-xs bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
+                      >
+                        <Crown className="w-3 h-3" />
+                        {member.membershipTier === 'free' ? '升級高級' : 
+                         member.membershipTier === 'premium' ? '升級VIP' : '重置免費'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`確定要刪除會員「${member.displayName || member.name}」嗎？`)) {
+                            removeMember(member.id)
+                          }
+                        }}
+                        className="flex items-center justify-center gap-1 px-3 py-1.5 rounded text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                      >
+                        <Ban className="w-3 h-3" />
+                        移除
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Active Passes */}
+          <div className="glass rounded-xl p-4">
+            <h3 className="font-semibold mb-3">有效通行證 ({activePasses.filter(p => p.isActive).length})</h3>
+            {activePasses.filter(p => p.isActive).length === 0 ? (
+              <p className="text-gray-400 text-sm">暫無有效通行證</p>
+            ) : (
               <div className="space-y-2">
-                {activePasses.slice(-5).reverse().map((pass) => (
-                  <div key={pass.id} className="flex justify-between text-sm py-2 border-b border-gray-800 last:border-0">
-                    <span>{pass.planName}</span>
-                    <span className="text-gray-400">
-                      {format(new Date(pass.purchaseTime), 'MM/dd HH:mm')}
-                    </span>
+                {activePasses.filter(p => p.isActive).map((pass) => (
+                  <div key={pass.id} className="flex justify-between items-center text-sm py-2 border-b border-gray-800 last:border-0">
+                    <div>
+                      <p className="font-medium">{pass.barName}</p>
+                      <p className="text-xs text-gray-500">{pass.personCount}人通行證</p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-xs ${new Date(pass.expiryTime) > new Date() ? 'text-green-400' : 'text-red-400'}`}>
+                        {new Date(pass.expiryTime) > new Date() ? '有效' : '已過期'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {format(new Date(pass.expiryTime), 'MM/dd HH:mm')}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -497,10 +661,26 @@ export default function Admin() {
                     {districtBars.map((bar) => (
                       <div key={bar.id} className="flex justify-between items-center py-2 border-b border-gray-800 last:border-0">
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{bar.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium truncate">{bar.name}</p>
+                            {featuredBarIds.includes(bar.id) && (
+                              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 shrink-0" />
+                            )}
+                          </div>
                           <p className="text-xs text-gray-500 truncate">{bar.address}</p>
                         </div>
-                        <div className="flex items-center gap-2 ml-2">
+                        <div className="flex items-center gap-1 ml-2">
+                          <button
+                            onClick={() => toggleFeaturedBar(bar.id)}
+                            className={`p-2 hover:bg-white/10 rounded ${
+                              featuredBarIds.includes(bar.id) 
+                                ? 'text-yellow-500' 
+                                : 'text-gray-400 hover:text-yellow-500'
+                            }`}
+                            title={featuredBarIds.includes(bar.id) ? '取消精選' : '設為精選'}
+                          >
+                            <Star className={`w-4 h-4 ${featuredBarIds.includes(bar.id) ? 'fill-current' : ''}`} />
+                          </button>
                           <button
                             onClick={() => handleEditBar(bar)}
                             className="p-2 hover:bg-white/10 rounded text-gray-400 hover:text-primary-500"
@@ -519,6 +699,325 @@ export default function Admin() {
                   </div>
                 )
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Tab */}
+      {activeTab === 'settings' && (
+        <div className="space-y-4">
+          {/* Test Mode Toggle */}
+          <div className={`glass rounded-xl p-4 border ${paymentSettings?.testMode ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-green-500/50 bg-green-500/5'}`}>
+            <label className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold">{paymentSettings?.testMode ? '🧪 測試模式' : '🟢 正式模式'}</h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  {paymentSettings?.testMode 
+                    ? '付款將被模擬，不會實際扣款' 
+                    : '付款將實際處理，請確保 API 金鑰已設定'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">{paymentSettings?.testMode ? '測試' : '正式'}</span>
+                <button
+                  onClick={() => updatePaymentSettings({ testMode: !paymentSettings?.testMode })}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    paymentSettings?.testMode ? 'bg-yellow-500' : 'bg-green-500'
+                  }`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    paymentSettings?.testMode ? 'left-1' : 'left-7'
+                  }`} />
+                </button>
+              </div>
+            </label>
+          </div>
+
+          {/* Payment Methods */}
+          <div className="glass rounded-xl p-4">
+            <h3 className="font-semibold mb-4">付款方式</h3>
+            <div className="space-y-3">
+              <label className="flex items-center justify-between p-3 bg-dark-800 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">💳</span>
+                  <div>
+                    <p className="font-medium">信用卡 (Stripe)</p>
+                    <p className="text-xs text-gray-500">Visa, Mastercard, AMEX</p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={paymentSettings?.stripeEnabled ?? true}
+                  onChange={(e) => updatePaymentSettings({ stripeEnabled: e.target.checked })}
+                  className="w-5 h-5 rounded text-primary-500"
+                />
+              </label>
+              
+              <div className="p-3 bg-dark-800 rounded-lg space-y-3">
+                <label className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">🔴</span>
+                    <div>
+                      <p className="font-medium">PayMe</p>
+                      <p className="text-xs text-gray-500">HSBC PayMe</p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={paymentSettings?.paymeEnabled ?? true}
+                    onChange={(e) => updatePaymentSettings({ paymeEnabled: e.target.checked })}
+                    className="w-5 h-5 rounded text-primary-500"
+                  />
+                </label>
+                {paymentSettings?.paymeEnabled && (
+                  <div className="pl-9">
+                    <label className="block text-xs text-gray-400 mb-2">收款 QR Code</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          const reader = new FileReader()
+                          reader.onloadend = () => {
+                            updatePaymentSettings({ paymeQrCode: reader.result as string })
+                          }
+                          reader.readAsDataURL(file)
+                        }
+                      }}
+                      className="w-full text-sm text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-primary-500 file:text-dark-900 file:cursor-pointer hover:file:bg-primary-400"
+                    />
+                    {paymentSettings?.paymeQrCode && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <img src={paymentSettings.paymeQrCode} alt="PayMe QR" className="w-24 h-24 object-contain bg-white rounded" />
+                        <button
+                          onClick={() => updatePaymentSettings({ paymeQrCode: null })}
+                          className="text-xs text-red-400 hover:text-red-300"
+                        >
+                          移除
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-3 bg-dark-800 rounded-lg space-y-3">
+                <label className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">⚡</span>
+                    <div>
+                      <p className="font-medium">轉數快 (FPS)</p>
+                      <p className="text-xs text-gray-500">Faster Payment System</p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={paymentSettings?.fpsEnabled ?? true}
+                    onChange={(e) => updatePaymentSettings({ fpsEnabled: e.target.checked })}
+                    className="w-5 h-5 rounded text-primary-500"
+                  />
+                </label>
+                {paymentSettings?.fpsEnabled && (
+                  <div className="pl-9">
+                    <label className="block text-xs text-gray-400 mb-2">收款 QR Code</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          const reader = new FileReader()
+                          reader.onloadend = () => {
+                            updatePaymentSettings({ fpsQrCode: reader.result as string })
+                          }
+                          reader.readAsDataURL(file)
+                        }
+                      }}
+                      className="w-full text-sm text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-primary-500 file:text-dark-900 file:cursor-pointer hover:file:bg-primary-400"
+                    />
+                    {paymentSettings?.fpsQrCode && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <img src={paymentSettings.fpsQrCode} alt="FPS QR" className="w-24 h-24 object-contain bg-white rounded" />
+                        <button
+                          onClick={() => updatePaymentSettings({ fpsQrCode: null })}
+                          className="text-xs text-red-400 hover:text-red-300"
+                        >
+                          移除
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-3 bg-dark-800 rounded-lg space-y-3">
+                <label className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">🔵</span>
+                    <div>
+                      <p className="font-medium">支付寶HK</p>
+                      <p className="text-xs text-gray-500">Alipay HK</p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={paymentSettings?.alipayEnabled ?? false}
+                    onChange={(e) => updatePaymentSettings({ alipayEnabled: e.target.checked })}
+                    className="w-5 h-5 rounded text-primary-500"
+                  />
+                </label>
+                {paymentSettings?.alipayEnabled && (
+                  <div className="pl-9">
+                    <label className="block text-xs text-gray-400 mb-2">收款 QR Code</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          const reader = new FileReader()
+                          reader.onloadend = () => {
+                            updatePaymentSettings({ alipayQrCode: reader.result as string })
+                          }
+                          reader.readAsDataURL(file)
+                        }
+                      }}
+                      className="w-full text-sm text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-primary-500 file:text-dark-900 file:cursor-pointer hover:file:bg-primary-400"
+                    />
+                    {paymentSettings?.alipayQrCode && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <img src={paymentSettings.alipayQrCode} alt="Alipay QR" className="w-24 h-24 object-contain bg-white rounded" />
+                        <button
+                          onClick={() => updatePaymentSettings({ alipayQrCode: null })}
+                          className="text-xs text-red-400 hover:text-red-300"
+                        >
+                          移除
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-3 bg-dark-800 rounded-lg space-y-3">
+                <label className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">🟢</span>
+                    <div>
+                      <p className="font-medium">微信支付HK</p>
+                      <p className="text-xs text-gray-500">WeChat Pay HK</p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={paymentSettings?.wechatEnabled ?? false}
+                    onChange={(e) => updatePaymentSettings({ wechatEnabled: e.target.checked })}
+                    className="w-5 h-5 rounded text-primary-500"
+                  />
+                </label>
+                {paymentSettings?.wechatEnabled && (
+                  <div className="pl-9">
+                    <label className="block text-xs text-gray-400 mb-2">收款 QR Code</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          const reader = new FileReader()
+                          reader.onloadend = () => {
+                            updatePaymentSettings({ wechatQrCode: reader.result as string })
+                          }
+                          reader.readAsDataURL(file)
+                        }
+                      }}
+                      className="w-full text-sm text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-primary-500 file:text-dark-900 file:cursor-pointer hover:file:bg-primary-400"
+                    />
+                    {paymentSettings?.wechatQrCode && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <img src={paymentSettings.wechatQrCode} alt="WeChat QR" className="w-24 h-24 object-contain bg-white rounded" />
+                        <button
+                          onClick={() => updatePaymentSettings({ wechatQrCode: null })}
+                          className="text-xs text-red-400 hover:text-red-300"
+                        >
+                          移除
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Fee Settings */}
+          <div className="glass rounded-xl p-4">
+            <h3 className="font-semibold mb-4">費用設定</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">平台費用比例 (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={(paymentSettings?.platformFeePercentage ?? 0.5) * 100}
+                  onChange={(e) => updatePaymentSettings({ platformFeePercentage: Number(e.target.value) / 100 })}
+                  className="w-full bg-dark-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-primary-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">用戶預付的平台費用比例（剩餘到店支付）</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">最少人數</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={paymentSettings?.minPersonCount ?? 1}
+                    onChange={(e) => updatePaymentSettings({ minPersonCount: Number(e.target.value) })}
+                    className="w-full bg-dark-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">最多人數</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={paymentSettings?.maxPersonCount ?? 10}
+                    onChange={(e) => updatePaymentSettings({ maxPersonCount: Number(e.target.value) })}
+                    className="w-full bg-dark-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">通行證有效天數</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="30"
+                  value={paymentSettings?.passValidDays ?? 7}
+                  onChange={(e) => updatePaymentSettings({ passValidDays: Number(e.target.value) })}
+                  className="w-full bg-dark-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-primary-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* API Keys Notice */}
+          <div className="glass rounded-xl p-4 border border-yellow-500/30">
+            <h3 className="font-semibold mb-2 text-yellow-400">API 金鑰設定</h3>
+            <p className="text-sm text-gray-400 mb-3">
+              付款閘道 API 金鑰需要在伺服器端設定，請聯絡開發團隊。
+            </p>
+            <div className="space-y-2 text-xs text-gray-500">
+              <p>• Stripe: STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY</p>
+              <p>• PayMe: PAYME_API_KEY</p>
+              <p>• FPS: 需要銀行 API 整合</p>
             </div>
           </div>
         </div>

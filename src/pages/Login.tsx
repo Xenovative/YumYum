@@ -1,0 +1,117 @@
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft, Loader2, Mail, Lock } from 'lucide-react'
+import { useStore } from '../store/useStore'
+
+export default function Login() {
+  const navigate = useNavigate()
+  const { login, isLoggedIn, user } = useStore()
+  
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  // Redirect if already logged in with valid user
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      navigate('/profile')
+    }
+  }, [isLoggedIn, user, navigate])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    
+    if (!email.trim() || !password.trim()) {
+      setError('請填寫所有欄位')
+      return
+    }
+    
+    setIsLoading(true)
+    try {
+      await login(email.trim(), password.trim())
+      navigate('/profile')
+    } catch {
+      setError('登入失敗，請檢查電郵和密碼')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Link to="/profile" className="p-2 rounded-full glass hover:bg-white/10">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <h1 className="text-xl font-bold">登入</h1>
+      </div>
+
+      <div className="text-center py-4">
+        <h2 className="text-2xl font-bold mb-2">歡迎回來</h2>
+        <p className="text-gray-400">登入你的 YumYum 帳號</p>
+      </div>
+
+      {error && (
+        <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm text-center">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="glass rounded-xl p-6 space-y-4">
+        <div>
+          <label className="block text-sm text-gray-400 mb-2">電郵地址</label>
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-dark-800 border border-gray-700 rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:border-primary-500"
+              placeholder="your@email.com"
+              required
+            />
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm text-gray-400 mb-2">密碼</label>
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-dark-800 border border-gray-700 rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:border-primary-500"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-dark-900 font-semibold py-3 rounded-lg disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              登入中...
+            </>
+          ) : (
+            '登入'
+          )}
+        </button>
+      </form>
+
+      <p className="text-center text-gray-400">
+        還沒有帳號？{' '}
+        <Link to="/register" className="text-primary-500 font-medium">
+          立即註冊
+        </Link>
+      </p>
+    </div>
+  )
+}

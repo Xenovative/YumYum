@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
-import { Clock, RefreshCw, Wine, AlertCircle } from 'lucide-react'
+import { Clock, RefreshCw, Wine, AlertCircle, Users, MapPin } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { format, differenceInSeconds, differenceInDays, differenceInHours } from 'date-fns'
 import { zhTW } from 'date-fns/locale'
 
 export default function MyPass() {
-  const { activePasses, checkAndExpirePasses, isLoggedIn, userName } = useStore()
+  const { activePasses, checkAndExpirePasses, isLoggedIn, user } = useStore()
   const [, setTick] = useState(0)
 
   // Check for expired passes and update countdown
@@ -50,12 +50,12 @@ export default function MyPass() {
       <div className="text-center py-12 space-y-4">
         <Wine className="w-16 h-16 text-gray-600 mx-auto" />
         <h2 className="text-xl font-semibold">尚未登入</h2>
-        <p className="text-gray-400">請先選擇會員方案</p>
+        <p className="text-gray-400">請先預約酒吧</p>
         <Link
-          to="/membership"
+          to="/districts"
           className="inline-block bg-gradient-to-r from-primary-500 to-primary-600 text-dark-900 font-semibold px-6 py-3 rounded-full"
         >
-          選擇會員方案
+          瀏覽酒吧
         </Link>
       </div>
     )
@@ -65,13 +65,13 @@ export default function MyPass() {
     return (
       <div className="text-center py-12 space-y-4">
         <Wine className="w-16 h-16 text-gray-600 mx-auto" />
-        <h2 className="text-xl font-semibold">暫無有效折扣卡</h2>
-        <p className="text-gray-400">選擇會員方案即可獲取折扣卡</p>
+        <h2 className="text-xl font-semibold">暫無有效通行證</h2>
+        <p className="text-gray-400">選擇酒吧並預約暢飲通行證</p>
         <Link
-          to="/membership"
+          to="/districts"
           className="inline-block bg-gradient-to-r from-primary-500 to-primary-600 text-dark-900 font-semibold px-6 py-3 rounded-full"
         >
-          立即加入
+          瀏覽酒吧
         </Link>
       </div>
     )
@@ -80,14 +80,14 @@ export default function MyPass() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-bold mb-2">我的折扣卡</h1>
+        <h1 className="text-2xl font-bold mb-2">我的通行證</h1>
         <p className="text-gray-400 text-sm">請讓酒吧工作人員掃描QR碼</p>
       </div>
 
       {validPasses.map((pass) => {
         const timeRemaining = formatTimeRemaining(pass.expiryTime)
         const totalSeconds = differenceInSeconds(new Date(pass.expiryTime), new Date())
-        const isExpiringSoon = totalSeconds < 3600 // 1 hour
+        const isExpiringSoon = totalSeconds < 86400 // 1 day
 
         return (
           <div
@@ -98,15 +98,16 @@ export default function MyPass() {
             <div className="bg-gradient-to-r from-primary-500 to-primary-600 p-4 text-dark-900">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="font-bold text-lg">{pass.planName}</h2>
-                  <p className="text-dark-800 text-sm">{userName}</p>
+                  <h2 className="font-bold text-lg">{pass.barName}</h2>
+                  <p className="text-dark-800 text-sm">{user?.name}</p>
                 </div>
                 <div className="text-right">
                   <div className="flex items-center gap-1">
-                    <span className="text-sm">HK$</span>
-                    <span className="font-bold text-3xl">{pass.credit}</span>
+                    <Users className="w-4 h-4" />
+                    <span className="font-bold text-2xl">{pass.personCount}</span>
+                    <span className="text-sm">人</span>
                   </div>
-                  <p className="text-xs text-dark-700">消費額度</p>
+                  <p className="text-xs text-dark-700">暢飲通行證</p>
                 </div>
               </div>
             </div>
@@ -116,7 +117,7 @@ export default function MyPass() {
               {isExpiringSoon && (
                 <div className="flex items-center gap-2 text-yellow-500 mb-4 text-sm">
                   <AlertCircle className="w-4 h-4" />
-                  <span>折扣卡即將過期</span>
+                  <span>通行證即將過期</span>
                 </div>
               )}
               
@@ -132,17 +133,25 @@ export default function MyPass() {
               </div>
               
               <div className="mt-4 text-center">
-                <p className="text-2xl font-bold text-primary-500">
-                  HK${pass.credit}
+                <p className="text-lg text-gray-300">到店支付</p>
+                <p className="text-3xl font-bold text-primary-500">
+                  HK${pass.barPayment}
                 </p>
-                <p className="text-gray-400 text-sm">剩餘 {timeRemaining}</p>
+                <p className="text-gray-400 text-sm mt-1">剩餘 {timeRemaining}</p>
               </div>
 
               <div className="mt-6 w-full space-y-3 text-sm">
                 <div className="flex items-center justify-between text-gray-400">
                   <span className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    酒吧
+                  </span>
+                  <span>{pass.barName}</span>
+                </div>
+                <div className="flex items-center justify-between text-gray-400">
+                  <span className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    啟用時間
+                    預約時間
                   </span>
                   <span>
                     {format(new Date(pass.purchaseTime), 'yyyy/MM/dd HH:mm', { locale: zhTW })}
@@ -151,11 +160,23 @@ export default function MyPass() {
                 <div className="flex items-center justify-between text-gray-400">
                   <span className="flex items-center gap-2">
                     <RefreshCw className="w-4 h-4" />
-                    到期時間
+                    有效期至
                   </span>
                   <span>
                     {format(new Date(pass.expiryTime), 'yyyy/MM/dd HH:mm', { locale: zhTW })}
                   </span>
+                </div>
+              </div>
+
+              {/* Payment Breakdown */}
+              <div className="mt-4 w-full bg-dark-800 rounded-lg p-3 space-y-1 text-sm">
+                <div className="flex justify-between text-gray-400">
+                  <span>已付平台費</span>
+                  <span>HK${pass.platformFee}</span>
+                </div>
+                <div className="flex justify-between text-primary-400 font-medium">
+                  <span>到店支付</span>
+                  <span>HK${pass.barPayment}</span>
                 </div>
               </div>
             </div>
@@ -163,7 +184,7 @@ export default function MyPass() {
             {/* Instructions */}
             <div className="border-t border-gray-800 p-4">
               <p className="text-xs text-gray-500 text-center">
-                請讓合作酒吧工作人員掃描此QR碼，即可使用 HK${pass.credit} 消費額度
+                到店出示此QR碼，支付 HK${pass.barPayment} 即可享受 {pass.personCount} 人暢飲服務
               </p>
             </div>
           </div>
@@ -171,10 +192,10 @@ export default function MyPass() {
       })}
 
       <Link
-        to="/membership"
+        to="/districts"
         className="block text-center text-primary-500 text-sm"
       >
-        升級會員方案
+        預約更多酒吧
       </Link>
     </div>
   )

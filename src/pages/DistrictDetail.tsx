@@ -2,14 +2,13 @@ import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Star, MapPin } from 'lucide-react'
 import { districts } from '../data/districts'
 import { useStore } from '../store/useStore'
+import { PASS_PRICE_PER_PERSON } from '../types'
 
 export default function DistrictDetail() {
   const { districtId } = useParams<{ districtId: string }>()
   const district = districts.find(d => d.id === districtId)
-  const { getActivePass, bars } = useStore()
+  const { bars } = useStore()
   const districtBars = districtId ? bars.filter(b => b.districtId === districtId) : []
-  
-  const activePass = getActivePass()
 
   if (!district) {
     return (
@@ -35,42 +34,17 @@ export default function DistrictDetail() {
         </div>
       </div>
 
-      {/* Active Pass Notice */}
-      {activePass ? (
-        <div className="bg-green-500/20 border border-green-500/50 rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-400 font-medium">
-                ✓ 你已有 HK${activePass.credit} 優惠卡
-              </p>
-              <p className="text-green-300 text-sm">在以下酒吧出示QR碼即可使用</p>
-            </div>
-            <Link 
-              to="/my-pass" 
-              className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium"
-            >
-              查看優惠卡
-            </Link>
+      {/* Info Banner */}
+      <div className="bg-primary-500/20 border border-primary-500/50 rounded-xl p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-primary-400 font-medium">
+              暢飲通行證
+            </p>
+            <p className="text-primary-300 text-sm">每人 HK${PASS_PRICE_PER_PERSON} · 選擇酒吧預約</p>
           </div>
         </div>
-      ) : (
-        <div className="bg-primary-500/20 border border-primary-500/50 rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-primary-400 font-medium">
-                免費領取優惠卡
-              </p>
-              <p className="text-primary-300 text-sm">HK$200 消費額度</p>
-            </div>
-            <Link 
-              to="/membership" 
-              className="bg-primary-500 text-dark-900 px-4 py-2 rounded-lg text-sm font-medium"
-            >
-              立即領取
-            </Link>
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Bars List */}
       <section>
@@ -80,7 +54,11 @@ export default function DistrictDetail() {
         </h2>
         <div className="space-y-3">
           {districtBars.map((bar) => (
-            <div key={bar.id} className="glass rounded-xl overflow-hidden">
+            <Link 
+              key={bar.id} 
+              to={`/bar/${bar.id}`}
+              className="glass rounded-xl overflow-hidden block hover:border-primary-500/50 transition-all"
+            >
               <div className="flex">
                 <img
                   src={bar.image}
@@ -108,7 +86,7 @@ export default function DistrictDetail() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>

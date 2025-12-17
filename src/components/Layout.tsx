@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Beer, MapPin, QrCode, User } from 'lucide-react'
+import { Beer, MapPin, QrCode, User, Users } from 'lucide-react'
 
 export default function Layout() {
   const location = useLocation()
@@ -7,6 +7,7 @@ export default function Layout() {
   const navItems = [
     { path: '/', icon: Beer, label: '首頁' },
     { path: '/districts', icon: MapPin, label: '地區' },
+    { path: '/parties', icon: Users, label: '酒局' },
     { path: '/my-pass', icon: QrCode, label: '通行證' },
     { path: '/profile', icon: User, label: '我的' },
   ]
