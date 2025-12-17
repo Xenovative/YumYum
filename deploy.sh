@@ -3,7 +3,7 @@
 # YumYum VPS Deployment Script
 # Usage: ./deploy.sh [port]
 
-PORT=${1:-3000}
+PORT=${1:-8080}
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="yumyum"
 
@@ -43,9 +43,9 @@ pkill -f "serve.*$APP_NAME" 2>/dev/null
 
 # Start server with nohup (survives SSH disconnect)
 echo "Starting server on port $PORT..."
-nohup serve dist -l $PORT > /var/log/$APP_NAME.log 2>&1 &
+nohup serve -s dist -l $PORT > "$APP_DIR/$APP_NAME.log" 2>&1 &
 
 echo "=== Deployment complete ==="
 echo "App running at: http://$(hostname -I | awk '{print $1}'):$PORT"
-echo "Logs: /var/log/$APP_NAME.log"
+echo "Logs: $APP_DIR/$APP_NAME.log"
 echo "Stop with: pkill -f 'serve.*$APP_NAME'"
