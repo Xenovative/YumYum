@@ -25,7 +25,7 @@ npm install
 
 # Build production bundle
 echo "Building production bundle..."
-npm run build
+node ./node_modules/typescript/bin/tsc && node ./node_modules/vite/bin/vite.js build
 
 if [ $? -ne 0 ]; then
     echo "Build failed!"
