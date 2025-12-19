@@ -38,11 +38,41 @@ if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
   echo "Run as root (sudo)."; exit 1
 fi
 
+pkg_installed() {
+  dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"
+}
+
+wait_for_dpkg_lock() {
+  local timeout_s="${1:-600}"
+  local waited_s=0
+
+  while \
+    fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || \
+    fuser /var/lib/dpkg/lock >/dev/null 2>&1 || \
+    fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || \
+    fuser /var/cache/apt/archives/lock >/dev/null 2>&1; do
+    if [[ "$waited_s" -ge "$timeout_s" ]]; then
+      echo "ERROR: Timed out waiting for dpkg/apt locks (likely unattended-upgrades). Try again later."; exit 1
+    fi
+    echo "Waiting for dpkg/apt lock... (${waited_s}s/${timeout_s}s)"
+    sleep 5
+    waited_s=$((waited_s + 5))
+  done
+}
+
 if command -v apt-get >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive
-  apt-get update -y
-  apt-get install -y nginx
-  apt-get install -y certbot python3-certbot-nginx
+
+  NEED_PKGS=()
+  pkg_installed nginx || NEED_PKGS+=(nginx)
+  pkg_installed certbot || NEED_PKGS+=(certbot)
+  pkg_installed python3-certbot-nginx || NEED_PKGS+=(python3-certbot-nginx)
+
+  if [[ "${#NEED_PKGS[@]}" -gt 0 ]]; then
+    wait_for_dpkg_lock 900
+    apt-get update -y
+    apt-get install -y "${NEED_PKGS[@]}"
+  fi
 else
   echo "This script currently supports Debian/Ubuntu (apt-get)."; exit 1
 fi
@@ -105,7 +135,8 @@ fi
 
 nginx -t
 systemctl enable nginx >/dev/null 2>&1 || true
-systemctl reload nginx
+systemctl start nginx >/dev/null 2>&1 || true
+systemctl reload nginx >/dev/null 2>&1 || systemctl restart nginx
 
 if command -v ss >/dev/null 2>&1; then
   if ! ss -ltn | grep -E "[:\]]${APP_PORT}[[:space:]]" >/dev/null 2>&1; then
