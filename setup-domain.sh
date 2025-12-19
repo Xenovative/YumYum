@@ -5,10 +5,12 @@ WWW_DOMAIN="www.one-night-drink.com"
 APEX_DOMAIN=""
 EMAIL=""
 APP_PORT="8080"
+UPSTREAM_HOST="127.0.0.1"
 CERTBOT_STAGING="0"
+SKIP_UPSTREAM_CHECK="0"
 
 usage() {
-  echo "Usage: sudo ./setup-domain.sh --email you@domain.com [--port 8080] [--www www.one-night-drink.com] [--apex one-night-drink.com] [--staging]"
+  echo "Usage: sudo ./setup-domain.sh --email you@domain.com [--port 8080] [--upstream-host 127.0.0.1] [--www www.one-night-drink.com] [--apex one-night-drink.com] [--staging]"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -17,6 +19,10 @@ while [[ $# -gt 0 ]]; do
       EMAIL="${2:-}"; shift 2 ;;
     --port)
       APP_PORT="${2:-}"; shift 2 ;;
+    --upstream-host)
+      UPSTREAM_HOST="${2:-}"; shift 2 ;;
+    --skip-upstream-check)
+      SKIP_UPSTREAM_CHECK="1"; shift 1 ;;
     --www)
       WWW_DOMAIN="${2:-}"; shift 2 ;;
     --apex)
@@ -109,6 +115,11 @@ fi
 
 SERVER_NAMES="${DOMAINS[*]}"
 
+UPSTREAM_FOR_PROXY="$UPSTREAM_HOST"
+if [[ "$UPSTREAM_FOR_PROXY" == *:* && "$UPSTREAM_FOR_PROXY" != \[*\] ]]; then
+  UPSTREAM_FOR_PROXY="[$UPSTREAM_FOR_PROXY]"
+fi
+
 cat > "$NGINX_AVAILABLE" <<EOF
 server {
   listen 80;
@@ -117,7 +128,7 @@ server {
   server_name ${SERVER_NAMES};
 
   location / {
-    proxy_pass http://127.0.0.1:${APP_PORT};
+    proxy_pass http://${UPSTREAM_FOR_PROXY}:${APP_PORT};
     proxy_http_version 1.1;
     proxy_set_header Host \$host;
     proxy_set_header X-Real-IP \$remote_addr;
@@ -138,10 +149,14 @@ systemctl enable nginx >/dev/null 2>&1 || true
 systemctl start nginx >/dev/null 2>&1 || true
 systemctl reload nginx >/dev/null 2>&1 || systemctl restart nginx
 
-if command -v ss >/dev/null 2>&1; then
-  if ! ss -ltn | grep -E "[:\]]${APP_PORT}[[:space:]]" >/dev/null 2>&1; then
-    echo "WARNING: Nothing appears to be listening on 127.0.0.1:${APP_PORT}."
+if [[ "$SKIP_UPSTREAM_CHECK" != "1" ]] && command -v ss >/dev/null 2>&1; then
+  if ! ss -ltnH 2>/dev/null | awk '{print $4}' | grep -Eq "(:|\\])${APP_PORT}$"; then
+    echo "WARNING: Nothing appears to be listening on TCP port ${APP_PORT}."
     echo "WARNING: Run your app first (Option A), e.g.: ./deploy.sh ${APP_PORT}"
+    echo "WARNING: If it is listening on a different port, pass --port."
+    echo "WARNING: If it is bound only to a non-loopback interface, pass --upstream-host <that IP>."
+    echo ""
+    echo "Debug: ss -ltnp | grep -E '(:|\\])${APP_PORT}\\b'"
   fi
 fi
 
