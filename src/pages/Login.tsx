@@ -50,7 +50,7 @@ export default function Login() {
 
       <div className="text-center py-4">
         <h2 className="text-2xl font-bold mb-2">歡迎回來</h2>
-        <p className="text-gray-400">登入你的 YumYum 帳號</p>
+        <p className="text-gray-400">登入你的 OneNightDrink 帳號</p>
       </div>
 
       {error && (

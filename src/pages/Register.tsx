@@ -63,7 +63,7 @@ export default function Register() {
 
       <div className="text-center py-4">
         <h2 className="text-2xl font-bold mb-2">建立帳號</h2>
-        <p className="text-gray-400">加入 YumYum 開始暢飲之旅</p>
+        <p className="text-gray-400">加入 OneNightDrink 開始暢飲之旅</p>
       </div>
 
       {error && (

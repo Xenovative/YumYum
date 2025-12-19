@@ -1,8 +1,11 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import { ActivePass, Bar, PendingReservation, User, MembershipTier, Party, PartyMember } from '../types'
 import { bars as initialBars } from '../data/bars'
 import { PaymentMethod } from '../services/paymentGateway'
+
+const STORAGE_KEY = 'onenightdrink-storage'
+const LEGACY_STORAGE_KEY = 'yumyum-storage'
 
 export interface PaymentSettings {
   enabledMethods: PaymentMethod[]
@@ -347,8 +350,16 @@ export const useStore = create<AppState>()(
       }))
     }),
     {
-      name: 'yumyum-storage',
+      name: STORAGE_KEY,
       version: 4,
+      storage: createJSONStorage(() => ({
+        getItem: (name) => localStorage.getItem(name) ?? localStorage.getItem(LEGACY_STORAGE_KEY),
+        setItem: (name, value) => localStorage.setItem(name, value),
+        removeItem: (name) => {
+          localStorage.removeItem(name)
+          localStorage.removeItem(LEGACY_STORAGE_KEY)
+        },
+      })),
       migrate: (persistedState: any, version: number) => {
         if (version < 2) {
           // Reset auth state from old format

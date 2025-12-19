@@ -7,7 +7,7 @@ import { Bar } from '../types'
 import { format } from 'date-fns'
 
 // Admin credentials (in production, use env vars or backend auth)
-const ADMIN_PASSWORD = 'yumyum2024'
+const ADMIN_PASSWORD = 'onenightdrink2024'
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -165,7 +165,12 @@ export default function Admin() {
   const handleScan = (code: string) => {
     try {
       const data = JSON.parse(code)
-      if (data.type === 'YUMYUM_CREDIT') {
+      if (
+        data.type === 'YUMYUM_CREDIT' ||
+        data.type === 'ONENIGHTDRINK_CREDIT' ||
+        data.type === 'YUMYUM_FREE_DRINKS' ||
+        data.type === 'ONENIGHTDRINK_FREE_DRINKS'
+      ) {
         const now = new Date()
         const expiry = new Date(data.expiry)
         const isValid = expiry > now

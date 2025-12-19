@@ -76,7 +76,7 @@ export default function Payment() {
       purchaseTime: now,
       expiryTime: expiryTime,
       qrCode: JSON.stringify({
-        type: 'YUMYUM_FREE_DRINKS',
+        type: 'ONENIGHTDRINK_FREE_DRINKS',
         passId: `pass-${Date.now()}`,
         barId: pendingReservation.barId,
         barName: pendingReservation.barName,

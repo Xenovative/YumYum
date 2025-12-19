@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# YumYum VPS Deployment Script
+# OneNightDrink VPS Deployment Script
 # Usage: ./deploy.sh [port]
 
 PORT=${1:-8080}
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
-APP_NAME="yumyum"
+APP_NAME="onenightdrink"
 
-echo "=== YumYum VPS Deployment ==="
+echo "=== OneNightDrink VPS Deployment ==="
 
 # Check for Node.js
 if ! command -v node &> /dev/null; then
@@ -38,8 +38,8 @@ if ! command -v serve &> /dev/null; then
     npm install -g serve
 fi
 
-# Kill existing process if running
-pkill -f "serve.*$APP_NAME" 2>/dev/null
+# Kill existing process if running (match the actual serve command)
+pkill -f "serve .*dist.*-l $PORT" 2>/dev/null
 
 # Start server with nohup (survives SSH disconnect)
 echo "Starting server on port $PORT..."
@@ -48,4 +48,4 @@ nohup serve -s dist -l $PORT > "$APP_DIR/$APP_NAME.log" 2>&1 &
 echo "=== Deployment complete ==="
 echo "App running at: http://$(hostname -I | awk '{print $1}'):$PORT"
 echo "Logs: $APP_DIR/$APP_NAME.log"
-echo "Stop with: pkill -f 'serve.*$APP_NAME'"
+echo "Stop with: pkill -f 'serve .*dist.*-l $PORT'"

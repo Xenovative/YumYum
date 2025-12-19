@@ -1,4 +1,4 @@
-# Build and serve YumYum app
+# Build and serve OneNightDrink app
 # Usage: .\serve.ps1 [port]
 
 param(

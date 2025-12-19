@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Setup YumYum as a systemd service
+# Setup OneNightDrink as a systemd service
 # Run with sudo: sudo ./setup-systemd.sh [port]
 
 PORT=${1:-3000}
@@ -17,9 +17,9 @@ sudo -u $USER npm run build
 which serve > /dev/null || npm install -g serve
 
 # Create systemd service
-cat > /etc/systemd/system/yumyum.service << EOF
+cat > /etc/systemd/system/onenightdrink.service << EOF
 [Unit]
-Description=YumYum Bar Pass App
+Description=OneNightDrink Bar Pass App
 After=network.target
 
 [Service]
@@ -31,7 +31,7 @@ Restart=always
 RestartSec=10
 StandardOutput=syslog
 StandardError=syslog
-SyslogIdentifier=yumyum
+SyslogIdentifier=onenightdrink
 
 [Install]
 WantedBy=multi-user.target
@@ -39,13 +39,13 @@ EOF
 
 # Enable and start
 systemctl daemon-reload
-systemctl enable yumyum
-systemctl start yumyum
+systemctl enable onenightdrink
+systemctl start onenightdrink
 
 echo "=== Service installed ==="
-echo "Status:  sudo systemctl status yumyum"
-echo "Logs:    sudo journalctl -u yumyum -f"
-echo "Restart: sudo systemctl restart yumyum"
-echo "Stop:    sudo systemctl stop yumyum"
+echo "Status:  sudo systemctl status onenightdrink"
+echo "Logs:    sudo journalctl -u onenightdrink -f"
+echo "Restart: sudo systemctl restart onenightdrink"
+echo "Stop:    sudo systemctl stop onenightdrink"
 echo ""
 echo "App running at: http://$(hostname -I | awk '{print $1}'):$PORT"
