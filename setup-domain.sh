@@ -8,7 +8,7 @@ APP_PORT="8080"
 CERTBOT_STAGING="0"
 
 usage() {
-  echo "Usage: sudo ./setup-domain.sh --email you@domain.com [--port 8080] [--www www.one-night-drink.com] [--apex one-night-drink.com]"
+  echo "Usage: sudo ./setup-domain.sh --email you@domain.com [--port 8080] [--www www.one-night-drink.com] [--apex one-night-drink.com] [--staging]"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -48,8 +48,25 @@ else
 fi
 
 NGINX_CONF_NAME="onenightdrink"
-NGINX_AVAILABLE="/etc/nginx/sites-available/${NGINX_CONF_NAME}.conf"
-NGINX_ENABLED="/etc/nginx/sites-enabled/${NGINX_CONF_NAME}.conf"
+NGINX_ROOT="/etc/nginx"
+NGINX_AVAILABLE=""
+NGINX_ENABLED=""
+USE_SITES_LAYOUT="0"
+
+if [[ -f "${NGINX_ROOT}/nginx.conf" ]] && grep -Eqs "include\s+${NGINX_ROOT}/sites-enabled/\*" "${NGINX_ROOT}/nginx.conf"; then
+  USE_SITES_LAYOUT="1"
+elif [[ -d "${NGINX_ROOT}/sites-available" || -d "${NGINX_ROOT}/sites-enabled" ]]; then
+  USE_SITES_LAYOUT="1"
+fi
+
+if [[ "$USE_SITES_LAYOUT" == "1" ]]; then
+  mkdir -p "${NGINX_ROOT}/sites-available" "${NGINX_ROOT}/sites-enabled"
+  NGINX_AVAILABLE="${NGINX_ROOT}/sites-available/${NGINX_CONF_NAME}.conf"
+  NGINX_ENABLED="${NGINX_ROOT}/sites-enabled/${NGINX_CONF_NAME}.conf"
+else
+  mkdir -p "${NGINX_ROOT}/conf.d"
+  NGINX_AVAILABLE="${NGINX_ROOT}/conf.d/${NGINX_CONF_NAME}.conf"
+fi
 
 DOMAINS=("$WWW_DOMAIN")
 if [[ -n "$APEX_DOMAIN" ]]; then
@@ -82,7 +99,9 @@ server {
 }
 EOF
 
-ln -sf "$NGINX_AVAILABLE" "$NGINX_ENABLED"
+if [[ -n "$NGINX_ENABLED" ]]; then
+  ln -sf "$NGINX_AVAILABLE" "$NGINX_ENABLED"
+fi
 
 nginx -t
 systemctl enable nginx >/dev/null 2>&1 || true
