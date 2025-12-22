@@ -64,25 +64,30 @@ export default function CreateParty() {
 
   const selectedPass = validPasses.find(p => p.id === selectedPassId)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedPass || !title.trim()) return
 
-    createParty({
-      hostId: user.id,
-      hostName: user.name,
-      hostDisplayName: user.displayName,
-      hostAvatar: user.avatar,
-      passId: selectedPass.id,
-      barId: selectedPass.barId,
-      barName: selectedPass.barName,
-      title: title.trim(),
-      description: description.trim() || undefined,
-      maxFemaleGuests: maxGuests,
-      partyTime: new Date(partyTime),
-    })
+    try {
+      await createParty({
+        hostId: user.id,
+        hostName: user.name,
+        hostDisplayName: user.displayName,
+        hostAvatar: user.avatar,
+        passId: selectedPass.id,
+        barId: selectedPass.barId,
+        barName: selectedPass.barName,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        maxFemaleGuests: maxGuests,
+        partyTime: new Date(partyTime),
+      })
 
-    navigate('/parties')
+      navigate('/parties')
+    } catch (error) {
+      console.error('Failed to create party:', error)
+      alert('Failed to create party. Please try again.')
+    }
   }
 
   return (

@@ -32,28 +32,43 @@ export default function PartyDetail() {
   const canJoin = isLoggedIn && user?.gender === 'female' && !hasJoined && party.status === 'open'
   const isFull = party.currentGuests.length >= party.maxFemaleGuests
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     if (!user || !canJoin) return
     
-    joinParty(party.id, {
-      userId: user.id,
-      name: user.name,
-      displayName: user.displayName,
-      avatar: user.avatar,
-      gender: user.gender!,
-      joinedAt: new Date(),
-    })
+    try {
+      await joinParty(party.id, {
+        userId: user.id,
+        name: user.name,
+        displayName: user.displayName,
+        avatar: user.avatar,
+        gender: user.gender!,
+        joinedAt: new Date(),
+      })
+    } catch (error) {
+      console.error('Failed to join party:', error)
+      alert('Failed to join party. Please try again.')
+    }
   }
 
-  const handleLeave = () => {
+  const handleLeave = async () => {
     if (!user) return
-    leaveParty(party.id, user.id)
+    try {
+      await leaveParty(party.id, user.id)
+    } catch (error) {
+      console.error('Failed to leave party:', error)
+      alert('Failed to leave party. Please try again.')
+    }
   }
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (!isHost) return
-    cancelParty(party.id)
-    navigate('/parties')
+    try {
+      await cancelParty(party.id)
+      navigate('/parties')
+    } catch (error) {
+      console.error('Failed to cancel party:', error)
+      alert('Failed to cancel party. Please try again.')
+    }
   }
 
   return (

@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { ActivePass, Bar, PendingReservation, User, MembershipTier, Party, PartyMember } from '../types'
 import { bars as initialBars } from '../data/bars'
 import { PaymentMethod } from '../services/paymentGateway'
+import { authAPI, passesAPI, partiesAPI, adminAPI } from '../services/api'
 
 const STORAGE_KEY = 'onenightdrink-storage'
 const LEGACY_STORAGE_KEY = 'yumyum-storage'
@@ -59,7 +60,7 @@ interface AppState {
   
   // Reservation actions
   setPendingReservation: (reservation: PendingReservation | null) => void
-  confirmReservation: (pass: ActivePass) => void
+  confirmReservation: () => Promise<void>
   
   getActivePass: () => ActivePass | undefined
   getActivePassForBar: (barId: string) => ActivePass | undefined
@@ -73,20 +74,20 @@ interface AppState {
   getFeaturedBars: () => Bar[]
   
   // Party actions
-  createParty: (party: Omit<Party, 'id' | 'createdAt' | 'currentGuests' | 'status'>) => Party
-  joinParty: (partyId: string, member: PartyMember) => boolean
-  leaveParty: (partyId: string, userId: string) => void
-  cancelParty: (partyId: string) => void
+  createParty: (party: Omit<Party, 'id' | 'createdAt' | 'currentGuests' | 'status'>) => Promise<Party>
+  joinParty: (partyId: string, member: PartyMember) => Promise<boolean>
+  leaveParty: (partyId: string, userId: string) => Promise<void>
+  cancelParty: (partyId: string) => Promise<void>
   getOpenParties: () => Party[]
   getMyHostedParties: () => Party[]
   getMyJoinedParties: () => Party[]
   
   // Member management actions (admin)
-  updateMember: (userId: string, updates: Partial<User>) => void
-  removeMember: (userId: string) => void
+  updateMember: (userId: string, updates: Partial<User>) => Promise<void>
+  removeMember: (userId: string) => Promise<void>
   
   // Payment settings actions (admin)
-  updatePaymentSettings: (settings: Partial<PaymentSettings>) => void
+  updatePaymentSettings: (settings: Partial<PaymentSettings>) => Promise<void>
 }
 
 export const useStore = create<AppState>()(
@@ -118,68 +119,44 @@ export const useStore = create<AppState>()(
         wechatQrCode: null,
       },
 
-      register: async (email, _password, name, phone) => {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        const newUser: User = {
-          id: `user-${Date.now()}`,
-          email,
-          phone,
-          name,
-          membershipTier: 'free',
-          joinedAt: new Date(),
-          totalSpent: 0,
-          totalVisits: 0
-        }
-        
-        set((state) => ({ 
-          isLoggedIn: true, 
-          user: newUser,
-          members: [...state.members, newUser]
-        }))
-        return true
-      },
-
-      login: async (email, _password) => {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        const state = get()
-        // Check if user exists in members
-        const existingMember = state.members.find(m => m.email === email)
-        
-        if (existingMember) {
-          set({ isLoggedIn: true, user: existingMember })
+      register: async (email, password, name, phone) => {
+        try {
+          const response = await authAPI.register(email, password, name, phone)
+          set({ 
+            isLoggedIn: true, 
+            user: response.user
+          })
           return true
+        } catch (error) {
+          console.error('Registration failed:', error)
+          return false
         }
-        
-        // Mock user for demo (new user via login)
-        const mockUser: User = {
-          id: `user-${Date.now()}`,
-          email,
-          phone: '',
-          name: email.split('@')[0],
-          membershipTier: 'free',
-          joinedAt: new Date(),
-          totalSpent: 0,
-          totalVisits: 0
-        }
-        
-        set((state) => ({ 
-          isLoggedIn: true, 
-          user: mockUser,
-          members: [...state.members, mockUser]
-        }))
-        return true
       },
 
-      logout: () => set({ 
-        isLoggedIn: false, 
-        user: null,
-        pendingReservation: null,
-        activePasses: []
-      }),
+      login: async (email, password) => {
+        try {
+          const response = await authAPI.login(email, password)
+          set({ 
+            isLoggedIn: true, 
+            user: response.user
+          })
+          return true
+        } catch (error) {
+          console.error('Login failed:', error)
+          return false
+        }
+      },
+
+      logout: () => {
+        authAPI.logout()
+        set({ 
+          isLoggedIn: false, 
+          user: null,
+          pendingReservation: null,
+          activePasses: [],
+          parties: []
+        })
+      },
 
       updateProfile: (updates) => set((state) => ({
         user: state.user ? { ...state.user, ...updates } : null
@@ -197,10 +174,26 @@ export const useStore = create<AppState>()(
         pendingReservation: reservation 
       }),
 
-      confirmReservation: (pass) => set((state) => ({
-        activePasses: [...state.activePasses, pass],
-        pendingReservation: null
-      })),
+      confirmReservation: async () => {
+        try {
+          const state = get()
+          const reservation = state.pendingReservation
+          if (!reservation) throw new Error('No pending reservation')
+          
+          const createdPass = await passesAPI.create(
+            reservation.barId,
+            reservation.personCount,
+            new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+          )
+          set((state) => ({
+            activePasses: [...state.activePasses, createdPass],
+            pendingReservation: null
+          }))
+        } catch (error) {
+          console.error('Failed to create pass:', error)
+          throw error
+        }
+      },
 
       getActivePass: () => {
         const state = get()
@@ -259,58 +252,63 @@ export const useStore = create<AppState>()(
       },
 
       // Party actions
-      createParty: (partyData) => {
-        const newParty: Party = {
-          ...partyData,
-          id: `party-${Date.now()}`,
-          currentGuests: [],
-          status: 'open',
-          createdAt: new Date(),
+      createParty: async (partyData) => {
+        try {
+          const newParty = await partiesAPI.create({
+            passId: partyData.passId,
+            title: partyData.title,
+            description: partyData.description || '',
+            maxFemaleGuests: partyData.maxFemaleGuests,
+            partyTime: new Date(partyData.partyTime)
+          })
+          set((state) => ({ parties: [...state.parties, newParty] }))
+          return newParty
+        } catch (error) {
+          console.error('Failed to create party:', error)
+          throw error
         }
-        set((state) => ({
-          parties: [...state.parties, newParty]
-        }))
-        return newParty
       },
 
-      joinParty: (partyId, member) => {
-        const state = get()
-        const party = state.parties.find(p => p.id === partyId)
-        if (!party || party.status !== 'open') return false
-        if (party.currentGuests.length >= party.maxFemaleGuests) return false
-        if (party.currentGuests.some(g => g.userId === member.userId)) return false
-        
-        set((state) => ({
-          parties: state.parties.map(p => 
-            p.id === partyId 
-              ? { 
-                  ...p, 
-                  currentGuests: [...p.currentGuests, member],
-                  status: p.currentGuests.length + 1 >= p.maxFemaleGuests ? 'full' : 'open'
-                } 
-              : p
-          )
-        }))
-        return true
+      joinParty: async (partyId) => {
+        try {
+          await partiesAPI.join(partyId)
+          const updatedParty = await partiesAPI.getById(partyId)
+          set((state) => ({
+            parties: state.parties.map(p => 
+              p.id === partyId ? updatedParty : p
+            )
+          }))
+          return true
+        } catch (error) {
+          console.error('Failed to join party:', error)
+          return false
+        }
       },
 
-      leaveParty: (partyId, userId) => set((state) => ({
-        parties: state.parties.map(p => 
-          p.id === partyId 
-            ? { 
-                ...p, 
-                currentGuests: p.currentGuests.filter(g => g.userId !== userId),
-                status: 'open'
-              } 
-            : p
-        )
-      })),
+      leaveParty: async (partyId) => {
+        try {
+          await partiesAPI.leave(partyId)
+          const updatedParty = await partiesAPI.getById(partyId)
+          set((state) => ({
+            parties: state.parties.map(p => 
+              p.id === partyId ? updatedParty : p
+            )
+          }))
+        } catch (error) {
+          console.error('Failed to leave party:', error)
+        }
+      },
 
-      cancelParty: (partyId) => set((state) => ({
-        parties: state.parties.map(p => 
-          p.id === partyId ? { ...p, status: 'cancelled' as const } : p
-        )
-      })),
+      cancelParty: async (partyId) => {
+        try {
+          await partiesAPI.cancel(partyId)
+          set((state) => ({
+            parties: state.parties.filter(p => p.id !== partyId)
+          }))
+        } catch (error) {
+          console.error('Failed to cancel party:', error)
+        }
+      },
 
       getOpenParties: () => {
         const state = get()
@@ -332,22 +330,38 @@ export const useStore = create<AppState>()(
       },
 
       // Member management (admin)
-      updateMember: (userId, updates) => set((state) => ({
-        members: state.members.map(m => 
-          m.id === userId ? { ...m, ...updates } : m
-        ),
-        // Also update current user if it's the same person
-        user: state.user?.id === userId ? { ...state.user, ...updates } : state.user
-      })),
+      updateMember: async (userId, updates) => {
+        try {
+          await adminAPI.updateMember(userId, updates)
+          const members = await adminAPI.getAllMembers()
+          set({ members })
+        } catch (error) {
+          console.error('Failed to update member:', error)
+        }
+      },
 
-      removeMember: (userId) => set((state) => ({
-        members: state.members.filter(m => m.id !== userId)
-      })),
+      removeMember: async (userId) => {
+        try {
+          await adminAPI.deleteMember(userId)
+          set((state) => ({
+            members: state.members.filter(m => m.id !== userId)
+          }))
+        } catch (error) {
+          console.error('Failed to remove member:', error)
+        }
+      },
 
       // Payment settings (admin)
-      updatePaymentSettings: (settings) => set((state) => ({
-        paymentSettings: { ...state.paymentSettings, ...settings }
-      }))
+      updatePaymentSettings: async (settings) => {
+        try {
+          await adminAPI.updatePaymentSettings(settings)
+          set((state) => ({
+            paymentSettings: { ...state.paymentSettings, ...settings }
+          }))
+        } catch (error) {
+          console.error('Failed to update payment settings:', error)
+        }
+      }
     }),
     {
       name: STORAGE_KEY,

@@ -2,8 +2,6 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, CreditCard, Loader2, CheckCircle, Shield } from 'lucide-react'
 import { useStore } from '../store/useStore'
-import { ActivePass } from '../types'
-import { addDays } from 'date-fns'
 import { paymentGateway, PaymentMethod, PAYMENT_METHODS } from '../services/paymentGateway'
 
 export default function Payment() {
@@ -62,44 +60,20 @@ export default function Payment() {
 
     setTransactionId(result.transactionId || null)
     
-    const now = new Date()
-    const expiryTime = addDays(now, 7) // Pass valid for 7 days
-    
-    const newPass: ActivePass = {
-      id: `pass-${Date.now()}`,
-      barId: pendingReservation.barId,
-      barName: pendingReservation.barName,
-      personCount: pendingReservation.personCount,
-      totalPrice: pendingReservation.totalPrice,
-      platformFee: pendingReservation.platformFee,
-      barPayment: pendingReservation.barPayment,
-      purchaseTime: now,
-      expiryTime: expiryTime,
-      qrCode: JSON.stringify({
-        type: 'ONENIGHTDRINK_FREE_DRINKS',
-        passId: `pass-${Date.now()}`,
-        barId: pendingReservation.barId,
-        barName: pendingReservation.barName,
-        personCount: pendingReservation.personCount,
-        barPayment: pendingReservation.barPayment,
-        userName: user?.name,
-        userPhone: user?.phone,
-        expiry: expiryTime.toISOString(),
-        transactionId: result.transactionId,
-        paymentMethod: selectedMethod,
-        code: Math.random().toString(36).substr(2, 9).toUpperCase()
-      }),
-      isActive: true
+    try {
+      await confirmReservation()
+      setIsProcessing(false)
+      setPaymentSuccess(true)
+      
+      // Redirect to pass after short delay
+      setTimeout(() => {
+        navigate('/my-pass')
+      }, 1500)
+    } catch (error) {
+      console.error('Failed to confirm reservation:', error)
+      setIsProcessing(false)
+      alert('Failed to create pass. Please try again.')
     }
-    
-    confirmReservation(newPass)
-    setIsProcessing(false)
-    setPaymentSuccess(true)
-    
-    // Redirect to pass after short delay
-    setTimeout(() => {
-      navigate('/my-pass')
-    }, 1500)
   }
 
   if (paymentSuccess) {
