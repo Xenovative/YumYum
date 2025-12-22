@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { User, Bar, ActivePass, Party } from '../types';
+import { User } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
