@@ -36,14 +36,7 @@ export default function PartyDetail() {
     if (!user || !canJoin) return
     
     try {
-      await joinParty(party.id, {
-        userId: user.id,
-        name: user.name,
-        displayName: user.displayName,
-        avatar: user.avatar,
-        gender: user.gender!,
-        joinedAt: new Date(),
-      })
+      await joinParty(party.id)
     } catch (error) {
       console.error('Failed to join party:', error)
       alert('Failed to join party. Please try again.')
