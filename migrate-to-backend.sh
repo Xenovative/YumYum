@@ -153,7 +153,7 @@ echo ""
 echo "=== Step 8: Process Manager ==="
 if ! command -v pm2 &> /dev/null; then
     echo "Installing PM2..."
-    sudo npm install -g pm2
+    npm install -g pm2
     echo "✓ PM2 installed"
 else
     echo "✓ PM2 already installed"
