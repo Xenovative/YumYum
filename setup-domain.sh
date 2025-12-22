@@ -5,12 +5,13 @@ WWW_DOMAIN="www.one-night-drink.com"
 APEX_DOMAIN=""
 EMAIL=""
 APP_PORT="8080"
+API_PORT="3001"
 UPSTREAM_HOST="127.0.0.1"
 CERTBOT_STAGING="0"
 SKIP_UPSTREAM_CHECK="0"
 
 usage() {
-  echo "Usage: sudo ./setup-domain.sh --email you@domain.com [--port 8080] [--upstream-host 127.0.0.1] [--www www.one-night-drink.com] [--apex one-night-drink.com] [--staging]"
+  echo "Usage: sudo ./setup-domain.sh --email you@domain.com [--port 8080] [--api-port 3001] [--upstream-host 127.0.0.1] [--www www.one-night-drink.com] [--apex one-night-drink.com] [--staging]"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -19,6 +20,8 @@ while [[ $# -gt 0 ]]; do
       EMAIL="${2:-}"; shift 2 ;;
     --port)
       APP_PORT="${2:-}"; shift 2 ;;
+    --api-port)
+      API_PORT="${2:-}"; shift 2 ;;
     --upstream-host)
       UPSTREAM_HOST="${2:-}"; shift 2 ;;
     --skip-upstream-check)
@@ -210,6 +213,19 @@ server {
   ssl_protocols TLSv1.2 TLSv1.3;
   ssl_ciphers HIGH:!aNULL:!MD5;
 
+  # API proxy
+  location /api/ {
+    proxy_pass http://${UPSTREAM_FOR_PROXY}:${API_PORT}/api/;
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection "upgrade";
+  }
+
+  # Frontend proxy
   location / {
     proxy_pass http://${UPSTREAM_FOR_PROXY}:${APP_PORT};
     proxy_http_version 1.1;
