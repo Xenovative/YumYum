@@ -1,12 +1,106 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import { ActivePass, Bar, PendingReservation, User, MembershipTier, Party, PartyMember } from '../types'
+import { ActivePass, Bar, PendingReservation, User, MembershipTier, Party } from '../types'
 import { PaymentMethod } from '../services/paymentGateway'
 import { authAPI, passesAPI, partiesAPI, adminAPI, barsAPI, ADMIN_TOKEN_KEY } from '../services/api'
 
 const STORAGE_KEY = 'onenightdrink-storage'
 const LEGACY_STORAGE_KEY = 'yumyum-storage'
 const hasAdminToken = typeof window !== 'undefined' ? !!localStorage.getItem(ADMIN_TOKEN_KEY) : false
+
+type RawPaymentSettings = {
+  platformFeePercentage?: number
+  minPersonCount?: number
+  maxPersonCount?: number
+  passValidDays?: number
+  stripeEnabled?: boolean
+  paymeEnabled?: boolean
+  fpsEnabled?: boolean
+  alipayEnabled?: boolean
+  wechatEnabled?: boolean
+  testMode?: boolean
+  paymeQrCode?: string | null
+  fpsQrCode?: string | null
+  alipayQrCode?: string | null
+  wechatQrCode?: string | null
+}
+
+const deriveEnabledMethods = (settings: RawPaymentSettings): PaymentMethod[] => {
+  const methods: PaymentMethod[] = []
+  if (settings.stripeEnabled) methods.push('stripe')
+  if (settings.paymeEnabled) methods.push('payme')
+  if (settings.fpsEnabled) methods.push('fps')
+  if (settings.alipayEnabled) methods.push('alipay')
+  if (settings.wechatEnabled) methods.push('wechat')
+  return methods
+}
+
+const mergePaymentSettings = (
+  current: PaymentSettings,
+  apiSettings?: RawPaymentSettings | null
+): PaymentSettings => {
+  if (!apiSettings) return current
+
+  const mergedFlags = {
+    stripeEnabled: apiSettings.stripeEnabled ?? current.stripeEnabled,
+    paymeEnabled: apiSettings.paymeEnabled ?? current.paymeEnabled,
+    fpsEnabled: apiSettings.fpsEnabled ?? current.fpsEnabled,
+    alipayEnabled: apiSettings.alipayEnabled ?? current.alipayEnabled,
+    wechatEnabled: apiSettings.wechatEnabled ?? current.wechatEnabled,
+    testMode: apiSettings.testMode ?? current.testMode,
+  }
+
+  const enabledMethods = deriveEnabledMethods(mergedFlags)
+
+  return {
+    ...current,
+    ...mergedFlags,
+    enabledMethods: enabledMethods.length ? enabledMethods : current.enabledMethods,
+    platformFeePercentage: apiSettings.platformFeePercentage ?? current.platformFeePercentage,
+    minPersonCount: apiSettings.minPersonCount ?? current.minPersonCount,
+    maxPersonCount: apiSettings.maxPersonCount ?? current.maxPersonCount,
+    passValidDays: apiSettings.passValidDays ?? current.passValidDays,
+    paymeQrCode: apiSettings.paymeQrCode ?? current.paymeQrCode,
+    fpsQrCode: apiSettings.fpsQrCode ?? current.fpsQrCode,
+    alipayQrCode: apiSettings.alipayQrCode ?? current.alipayQrCode,
+    wechatQrCode: apiSettings.wechatQrCode ?? current.wechatQrCode,
+  }
+}
+
+const normalizeAdminPasses = (passes: any[]): ActivePass[] =>
+  passes.map((pass) => ({
+    id: pass.id,
+    barId: pass.barId,
+    barName: pass.barName,
+    personCount: pass.personCount,
+    totalPrice: pass.totalPrice,
+    platformFee: pass.platformFee,
+    barPayment: pass.barPayment,
+    purchaseTime: pass.purchaseTime,
+    expiryTime: pass.expiryTime,
+    qrCode: pass.qrCode,
+    isActive: pass.isActive,
+    userId: pass.userId,
+    userName: pass.userName,
+    userEmail: pass.userEmail,
+    transactionId: pass.transactionId,
+    paymentMethod: pass.paymentMethod,
+  }))
+
+const ADMIN_PARTY_STATUSES = ['open', 'full', 'started', 'ended', 'cancelled'] as const
+
+const fetchAdminParties = async () => {
+  const results = await Promise.all(
+    ADMIN_PARTY_STATUSES.map((status) => partiesAPI.getAll(status))
+  )
+  const map = new Map<string, Party>()
+  results.flat().forEach((party) => {
+    map.set(party.id, party)
+  })
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.partyTime).getTime() - new Date(a.partyTime).getTime()
+  )
+}
 
 export interface PaymentSettings {
   enabledMethods: PaymentMethod[]
@@ -40,6 +134,7 @@ interface AppState {
   
   // Active passes
   activePasses: ActivePass[]
+  adminPasses: ActivePass[]
   
   // Bars
   bars: Bar[]
@@ -48,6 +143,10 @@ interface AppState {
   
   // Parties (酒局)
   parties: Party[]
+  adminParties: Party[]
+  adminDataLoading: boolean
+  adminDataLoaded: boolean
+  adminDataError?: string
   
   // Payment settings
   paymentSettings: PaymentSettings
@@ -78,12 +177,13 @@ interface AppState {
   
   // Party actions
   createParty: (party: Omit<Party, 'id' | 'createdAt' | 'currentGuests' | 'status'>) => Promise<Party>
-  joinParty: (partyId: string, member: PartyMember) => Promise<boolean>
+  joinParty: (partyId: string) => Promise<boolean>
   leaveParty: (partyId: string, userId: string) => Promise<void>
   cancelParty: (partyId: string) => Promise<void>
   getOpenParties: () => Party[]
   getMyHostedParties: () => Party[]
   getMyJoinedParties: () => Party[]
+  loadAdminDashboard: () => Promise<void>
   
   // Member management actions (admin)
   updateMember: (userId: string, updates: Partial<User>) => Promise<void>
@@ -101,10 +201,15 @@ export const useStore = create<AppState>()(
       members: [],
       pendingReservation: null,
       activePasses: [],
+      adminPasses: [],
       bars: [],
       featuredBarIds: [],
       isAdminAuthenticated: hasAdminToken,
       parties: [],
+      adminParties: [],
+      adminDataLoading: false,
+      adminDataLoaded: false,
+      adminDataError: undefined,
       paymentSettings: {
         enabledMethods: ['stripe', 'payme', 'fps'],
         platformFeePercentage: 0.5,
@@ -318,7 +423,11 @@ export const useStore = create<AppState>()(
             isAdminAuthenticated: true,
             bars,
             featuredBarIds: bars.filter((bar) => bar.isFeatured).map((bar) => bar.id),
+            adminDataLoaded: false,
+            adminDataError: undefined,
           })
+
+          await get().loadAdminDashboard()
           return true
         } catch (error) {
           console.error('Admin login failed:', error)
@@ -328,7 +437,52 @@ export const useStore = create<AppState>()(
 
       adminLogout: () => {
         authAPI.adminLogout()
-        set({ isAdminAuthenticated: false })
+        set({ 
+          isAdminAuthenticated: false,
+          members: [],
+          adminPasses: [],
+          adminParties: [],
+          adminDataLoaded: false,
+          adminDataLoading: false,
+          adminDataError: undefined,
+        })
+      },
+
+      loadAdminDashboard: async () => {
+        const state = get()
+        if (!state.isAdminAuthenticated) return
+
+        set({
+          adminDataLoading: true,
+          adminDataError: undefined,
+        })
+
+        try {
+          const [members, passes, paymentSettingsResponse, parties] = await Promise.all([
+            adminAPI.getAllMembers(),
+            adminAPI.getAllPasses(),
+            adminAPI.getPaymentSettings().catch(() => null),
+            fetchAdminParties(),
+          ])
+
+          const mergedSettings = mergePaymentSettings(state.paymentSettings, paymentSettingsResponse)
+
+          set({
+            members,
+            adminPasses: normalizeAdminPasses(passes),
+            adminParties: parties,
+            paymentSettings: mergedSettings,
+            adminDataLoading: false,
+            adminDataLoaded: true,
+            adminDataError: undefined,
+          })
+        } catch (error: any) {
+          console.error('Failed to load admin dashboard data:', error)
+          set({
+            adminDataLoading: false,
+            adminDataError: error?.message || 'Failed to load admin data',
+          })
+        }
       },
 
       // Party actions

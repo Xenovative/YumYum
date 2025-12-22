@@ -40,6 +40,11 @@ export interface ActivePass {
   expiryTime: Date
   qrCode: string
   isActive: boolean
+  userId?: string
+  userName?: string
+  userEmail?: string
+  transactionId?: string
+  paymentMethod?: string
 }
 
 export type MembershipTier = 'free' | 'premium' | 'vip'
@@ -71,6 +76,10 @@ export interface Party {
   status: PartyStatus
   createdAt: Date
   partyTime: Date // When the party starts
+  revenueShare?: {
+    platformFee: number
+    barPayment: number
+  }
 }
 
 export interface User {

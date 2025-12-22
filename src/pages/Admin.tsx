@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, QrCode, CheckCircle, XCircle, Clock, Store, CreditCard, Plus, Pencil, Trash2, X, Lock, LogOut, PartyPopper, UserCog, DollarSign, Crown, Ban, Star, Settings, Loader2 } from 'lucide-react'
 import { useStore } from '../store/useStore'
@@ -18,11 +18,13 @@ export default function Admin() {
   const store = useStore()
   const { 
     activePasses, 
+    adminPasses,
     bars, 
     addBar, 
     updateBar, 
     removeBar, 
     parties, 
+    adminParties,
     cancelParty, 
     members, 
     updateMember, 
@@ -32,9 +34,28 @@ export default function Admin() {
     updatePaymentSettings,
     isAdminAuthenticated,
     adminLogin,
-    adminLogout
+    adminLogout,
+    adminDataLoading,
+    adminDataLoaded,
+    adminDataError,
+    loadAdminDashboard
   } = store
   const featuredBarIds = store.featuredBarIds || []
+  const shouldUseAdminData = isAdminAuthenticated && adminDataLoaded
+  const isAdminDataLoading = isAdminAuthenticated && adminDataLoading
+  const paymentPasses = shouldUseAdminData ? adminPasses : activePasses
+  const partyList = shouldUseAdminData ? adminParties : parties
+  const adminDataBannerMessage = isAdminDataLoading
+    ? '正在載入最新後台資料...'
+    : adminDataError
+      ? `載入後台資料失敗：${adminDataError}`
+      : null
+
+  useEffect(() => {
+    if (isAdminAuthenticated && !adminDataLoaded && !adminDataLoading) {
+      loadAdminDashboard()
+    }
+  }, [isAdminAuthenticated, adminDataLoaded, adminDataLoading, loadAdminDashboard])
 
   // Bar form state - must be declared before any early returns
   const [showBarForm, setShowBarForm] = useState(false)
@@ -245,8 +266,8 @@ export default function Admin() {
   }
 
   // Stats
-  const totalPasses = activePasses.length
-  const activePasses24h = activePasses.filter(p => {
+  const totalPasses = paymentPasses.length
+  const activePasses24h = paymentPasses.filter(p => {
     const diff = Date.now() - new Date(p.purchaseTime).getTime()
     return diff < 24 * 60 * 60 * 1000
   }).length
@@ -258,6 +279,10 @@ export default function Admin() {
     { id: 'bars', label: '酒吧管理', icon: Store },
     { id: 'settings', label: '付款設定', icon: Settings },
   ] as const
+
+  const partyOpenCount = partyList.filter(p => p.status === 'open').length
+  const partyFullCount = partyList.filter(p => p.status === 'full').length
+  const partyTotalCount = partyList.length
 
   return (
     <div className="space-y-6">
@@ -296,6 +321,16 @@ export default function Admin() {
         ))}
       </div>
 
+      {adminDataBannerMessage && (
+        <div
+          className={`text-sm px-3 py-2 rounded-lg ${
+            adminDataError ? 'bg-red-500/20 text-red-200' : 'bg-primary-500/15 text-primary-100'
+          }`}
+        >
+          {adminDataBannerMessage}
+        </div>
+      )}
+
       {/* Payments Tab */}
       {activeTab === 'payments' && (
         <div className="space-y-4">
@@ -313,12 +348,12 @@ export default function Admin() {
             </div>
             <div className="glass rounded-xl p-4 text-center">
               <DollarSign className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-              <p className="text-3xl font-bold">HK${activePasses.reduce((sum, p) => sum + (p.platformFee || 0), 0)}</p>
+              <p className="text-3xl font-bold">{paymentPasses.reduce((sum, p) => sum + (p.platformFee || 0), 0)}</p>
               <p className="text-sm text-gray-400">平台收入</p>
             </div>
             <div className="glass rounded-xl p-4 text-center">
               <Store className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-              <p className="text-3xl font-bold">HK${activePasses.reduce((sum, p) => sum + (p.barPayment || 0), 0)}</p>
+              <p className="text-3xl font-bold">{paymentPasses.reduce((sum, p) => sum + (p.barPayment || 0), 0)}</p>
               <p className="text-sm text-gray-400">酒吧待收</p>
             </div>
           </div>
@@ -363,11 +398,11 @@ export default function Admin() {
           {/* Transaction History */}
           <div className="glass rounded-xl p-4">
             <h3 className="font-semibold mb-3">交易記錄</h3>
-            {activePasses.length === 0 ? (
+            {paymentPasses.length === 0 ? (
               <p className="text-gray-400 text-sm">暫無記錄</p>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {[...activePasses].reverse().map((pass) => (
+                {[...paymentPasses].reverse().map((pass) => (
                   <div key={pass.id} className="flex justify-between items-center text-sm py-2 border-b border-gray-800 last:border-0">
                     <div>
                       <p className="font-medium">{pass.barName}</p>
@@ -391,15 +426,15 @@ export default function Admin() {
           {/* Party Stats */}
           <div className="grid grid-cols-3 gap-3">
             <div className="glass rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-green-500">{parties.filter(p => p.status === 'open').length}</p>
+              <p className="text-2xl font-bold text-green-500">{partyOpenCount}</p>
               <p className="text-xs text-gray-400">招募中</p>
             </div>
             <div className="glass rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-yellow-500">{parties.filter(p => p.status === 'full').length}</p>
+              <p className="text-2xl font-bold text-yellow-500">{partyFullCount}</p>
               <p className="text-xs text-gray-400">已滿</p>
             </div>
             <div className="glass rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold">{parties.length}</p>
+              <p className="text-2xl font-bold">{partyTotalCount}</p>
               <p className="text-xs text-gray-400">總數</p>
             </div>
           </div>
@@ -407,11 +442,11 @@ export default function Admin() {
           {/* Party List */}
           <div className="glass rounded-xl p-4">
             <h3 className="font-semibold mb-3">所有酒局</h3>
-            {parties.length === 0 ? (
+            {partyList.length === 0 ? (
               <p className="text-gray-400 text-sm">暫無酒局</p>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {[...parties].reverse().map((party) => (
+                {[...partyList].reverse().map((party) => (
                   <div key={party.id} className="p-3 bg-dark-800 rounded-lg">
                     <div className="flex justify-between items-start">
                       <div>

@@ -10,10 +10,8 @@
     "cap:init": "cap init",
     "cap:add:android": "cap add android",
     "cap:sync": "cap sync",
-    "cap:sync:remote": "cap sync && node remove-local-assets.js",
     "cap:open:android": "cap open android",
-    "build:android": "npm run build && cap sync",
-    "build:android:remote": "cap sync && node remove-local-assets.js"
+    "build:android": "npm run build && cap sync"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",
