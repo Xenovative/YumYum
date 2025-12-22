@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
     );
 
     const partyIds = result.rows.map(row => row.id);
-    let membersResult = { rows: [] };
+    let membersResult: any = { rows: [] };
     
     if (partyIds.length > 0) {
       membersResult = await query(
@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
       );
     }
 
-    const membersByParty = membersResult.rows.reduce((acc: any, member) => {
+    const membersByParty = membersResult.rows.reduce((acc: any, member: any) => {
       if (!acc[member.party_id]) acc[member.party_id] = [];
       acc[member.party_id].push({
         userId: member.user_id,
@@ -93,7 +93,7 @@ router.get('/my-hosted', authenticateToken, async (req: AuthRequest, res) => {
     );
 
     const partyIds = result.rows.map(row => row.id);
-    let membersResult = { rows: [] };
+    let membersResult: any = { rows: [] };
     
     if (partyIds.length > 0) {
       membersResult = await query(
@@ -104,7 +104,7 @@ router.get('/my-hosted', authenticateToken, async (req: AuthRequest, res) => {
       );
     }
 
-    const membersByParty = membersResult.rows.reduce((acc: any, member) => {
+    const membersByParty = membersResult.rows.reduce((acc: any, member: any) => {
       if (!acc[member.party_id]) acc[member.party_id] = [];
       acc[member.party_id].push({
         userId: member.user_id,
@@ -156,7 +156,7 @@ router.get('/my-joined', authenticateToken, async (req: AuthRequest, res) => {
     );
 
     const partyIds = result.rows.map(row => row.id);
-    let membersResult = { rows: [] };
+    let membersResult: any = { rows: [] };
     
     if (partyIds.length > 0) {
       membersResult = await query(
@@ -167,7 +167,7 @@ router.get('/my-joined', authenticateToken, async (req: AuthRequest, res) => {
       );
     }
 
-    const membersByParty = membersResult.rows.reduce((acc: any, member) => {
+    const membersByParty = membersResult.rows.reduce((acc: any, member: any) => {
       if (!acc[member.party_id]) acc[member.party_id] = [];
       acc[member.party_id].push({
         userId: member.user_id,
