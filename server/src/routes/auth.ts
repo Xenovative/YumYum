@@ -41,7 +41,7 @@ router.post('/register', async (req, res) => {
     const user = result.rows[0];
     const payload = { userId: user.id, email: user.email };
     const secret = process.env.JWT_SECRET || '';
-    const options = { expiresIn: process.env.JWT_EXPIRES_IN || '7d' };
+    const options: jwt.SignOptions = { expiresIn: process.env.JWT_EXPIRES_IN || '7d' };
     const token = jwt.sign(payload, secret, options);
 
     res.json({
@@ -94,7 +94,7 @@ router.post('/login', async (req, res) => {
 
     const payload = { userId: user.id, email: user.email };
     const secret = process.env.JWT_SECRET || '';
-    const options = { expiresIn: process.env.JWT_EXPIRES_IN || '7d' };
+    const options: jwt.SignOptions = { expiresIn: process.env.JWT_EXPIRES_IN || '7d' };
     const token = jwt.sign(payload, secret, options);
 
     res.json({
