@@ -5,7 +5,8 @@ const config: CapacitorConfig = {
   appName: 'OneNightDrink',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    url: 'https://www.one-night-drink.com',
+    cleartext: true
   },
   android: {
     allowMixedContent: true
