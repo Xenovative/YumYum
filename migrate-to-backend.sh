@@ -185,39 +185,66 @@ echo "✓ Backend API started on port $API_PORT"
 # ===== UPDATE NGINX =====
 echo ""
 echo "=== Step 10: Update Nginx Configuration ==="
-echo ""
-echo "⚠ MANUAL STEP REQUIRED:"
-echo ""
-echo "Add this to your nginx HTTPS server block (BEFORE existing 'location /'):"
-echo ""
-echo "  # API proxy"
-echo "  location /api/ {"
-echo "    proxy_pass http://127.0.0.1:$API_PORT/api/;"
-echo "    proxy_http_version 1.1;"
-echo "    proxy_set_header Host \$host;"
-echo "    proxy_set_header X-Real-IP \$remote_addr;"
-echo "    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;"
-echo "    proxy_set_header X-Forwarded-Proto \$scheme;"
-echo "  }"
-echo ""
-echo "Nginx config location (one of these):"
-echo "  - /etc/nginx/sites-available/onenightdrink.conf"
-echo "  - /etc/nginx/conf.d/onenightdrink.conf"
-echo ""
-read -p "Press Enter when you've updated nginx config..."
 
-echo ""
-echo "Testing nginx configuration..."
-sudo nginx -t
+# Find nginx config file
+NGINX_CONF=""
+if [ -f /etc/nginx/sites-available/00-onenightdrink.conf ]; then
+    NGINX_CONF="/etc/nginx/sites-available/00-onenightdrink.conf"
+elif [ -f /etc/nginx/sites-enabled/00-onenightdrink.conf ]; then
+    NGINX_CONF="/etc/nginx/sites-enabled/00-onenightdrink.conf"
+elif [ -f /etc/nginx/conf.d/onenightdrink.conf ]; then
+    NGINX_CONF="/etc/nginx/conf.d/onenightdrink.conf"
+fi
 
-if [ $? -eq 0 ]; then
-    echo "✓ Nginx config valid"
-    echo "Reloading nginx..."
-    sudo systemctl reload nginx
-    echo "✓ Nginx reloaded"
+if [ -z "$NGINX_CONF" ]; then
+    echo "⚠ Nginx config not found. Skipping automatic update."
+    echo "Please manually add API proxy to your nginx config."
 else
-    echo "ERROR: Nginx config test failed"
-    echo "Please fix the configuration and run: sudo systemctl reload nginx"
+    echo "Found nginx config: $NGINX_CONF"
+    
+    # Check if API proxy already exists
+    if grep -q "location /api/" "$NGINX_CONF"; then
+        echo "✓ API proxy already configured"
+    else
+        echo "Adding API proxy configuration..."
+        
+        # Create backup
+        sudo cp "$NGINX_CONF" "${NGINX_CONF}.backup.$(date +%Y%m%d_%H%M%S)"
+        
+        # Add API proxy before the first 'location /' block in the HTTPS server section
+        sudo sed -i '/listen 443 ssl/,/location \// {
+            /location \// i\
+\
+  # API proxy\
+  location /api/ {\
+    proxy_pass http://127.0.0.1:'"$API_PORT"'/api/;\
+    proxy_http_version 1.1;\
+    proxy_set_header Host $host;\
+    proxy_set_header X-Real-IP $remote_addr;\
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\
+    proxy_set_header X-Forwarded-Proto $scheme;\
+  }\
+
+        }' "$NGINX_CONF"
+        
+        echo "✓ API proxy added to nginx config"
+    fi
+    
+    echo ""
+    echo "Testing nginx configuration..."
+    sudo nginx -t
+    
+    if [ $? -eq 0 ]; then
+        echo "✓ Nginx config valid"
+        echo "Reloading nginx..."
+        sudo systemctl reload nginx
+        echo "✓ Nginx reloaded"
+    else
+        echo "ERROR: Nginx config test failed"
+        echo "Restoring backup..."
+        sudo cp "${NGINX_CONF}.backup."* "$NGINX_CONF" 2>/dev/null || true
+        echo "Please check the configuration manually"
+    fi
 fi
 
 # ===== VERIFICATION =====
