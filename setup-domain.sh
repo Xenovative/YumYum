@@ -169,7 +169,7 @@ if [[ "$SKIP_UPSTREAM_CHECK" != "1" ]] && command -v ss >/dev/null 2>&1; then
   fi
 fi
 
-CERTBOT_ARGS=(--webroot -w "$WEBROOT" -n --agree-tos -m "$EMAIL")
+CERTBOT_ARGS=(certonly --webroot -w "$WEBROOT" -n --agree-tos -m "$EMAIL")
 if [[ "$CERTBOT_STAGING" == "1" ]]; then
   CERTBOT_ARGS+=(--staging)
 fi
