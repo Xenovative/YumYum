@@ -120,12 +120,21 @@ if [[ "$UPSTREAM_FOR_PROXY" == *:* && "$UPSTREAM_FOR_PROXY" != \[*\] ]]; then
   UPSTREAM_FOR_PROXY="[$UPSTREAM_FOR_PROXY]"
 fi
 
+WEBROOT="/var/www/html/${NGINX_CONF_NAME}"
+mkdir -p "$WEBROOT"
+
 cat > "$NGINX_AVAILABLE" <<EOF
 server {
   listen 80;
   listen [::]:80;
 
   server_name ${SERVER_NAMES};
+
+  root ${WEBROOT};
+
+  location /.well-known/acme-challenge/ {
+    try_files \$uri =404;
+  }
 
   location / {
     proxy_pass http://${UPSTREAM_FOR_PROXY}:${APP_PORT};
