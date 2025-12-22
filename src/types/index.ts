@@ -13,6 +13,7 @@ export interface Bar {
   image: string
   rating: number
   drinks: string[]
+  isFeatured?: boolean
 }
 
 export const PASS_PRICE_PER_PERSON = 250 // HKD

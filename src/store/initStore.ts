@@ -6,7 +6,10 @@ export async function initializeStore() {
   try {
     // Load bars from API
     const bars = await barsAPI.getAll();
-    useStore.setState({ bars });
+    useStore.setState({ 
+      bars,
+      featuredBarIds: bars.filter((bar: any) => bar.isFeatured).map((bar: any) => bar.id)
+    });
 
     // Check if user is logged in (has auth token)
     const token = localStorage.getItem('auth_token');

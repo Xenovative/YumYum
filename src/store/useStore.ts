@@ -1,12 +1,12 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { ActivePass, Bar, PendingReservation, User, MembershipTier, Party, PartyMember } from '../types'
-import { bars as initialBars } from '../data/bars'
 import { PaymentMethod } from '../services/paymentGateway'
-import { authAPI, passesAPI, partiesAPI, adminAPI } from '../services/api'
+import { authAPI, passesAPI, partiesAPI, adminAPI, barsAPI, ADMIN_TOKEN_KEY } from '../services/api'
 
 const STORAGE_KEY = 'onenightdrink-storage'
 const LEGACY_STORAGE_KEY = 'yumyum-storage'
+const hasAdminToken = typeof window !== 'undefined' ? !!localStorage.getItem(ADMIN_TOKEN_KEY) : false
 
 export interface PaymentSettings {
   enabledMethods: PaymentMethod[]
@@ -44,6 +44,7 @@ interface AppState {
   // Bars
   bars: Bar[]
   featuredBarIds: string[]
+  isAdminAuthenticated: boolean
   
   // Parties (酒局)
   parties: Party[]
@@ -67,11 +68,13 @@ interface AppState {
   checkAndExpirePasses: () => void
   
   // Bar actions
-  addBar: (bar: Bar) => void
-  updateBar: (id: string, bar: Partial<Bar>) => void
-  removeBar: (id: string) => void
-  toggleFeaturedBar: (barId: string) => void
+  addBar: (bar: Omit<Bar, 'id' | 'isFeatured'>) => Promise<void>
+  updateBar: (id: string, bar: Partial<Bar>) => Promise<void>
+  removeBar: (id: string) => Promise<void>
+  toggleFeaturedBar: (barId: string) => Promise<void>
   getFeaturedBars: () => Bar[]
+  adminLogin: (password: string) => Promise<boolean>
+  adminLogout: () => void
   
   // Party actions
   createParty: (party: Omit<Party, 'id' | 'createdAt' | 'currentGuests' | 'status'>) => Promise<Party>
@@ -98,8 +101,9 @@ export const useStore = create<AppState>()(
       members: [],
       pendingReservation: null,
       activePasses: [],
-      bars: initialBars,
+      bars: [],
       featuredBarIds: [],
+      isAdminAuthenticated: hasAdminToken,
       parties: [],
       paymentSettings: {
         enabledMethods: ['stripe', 'payme', 'fps'],
@@ -221,34 +225,110 @@ export const useStore = create<AppState>()(
         }
       }),
 
-      addBar: (bar) => set((state) => ({
-        bars: [...state.bars, bar]
-      })),
-
-      updateBar: (id, updates) => set((state) => ({
-        bars: state.bars.map(bar => 
-          bar.id === id ? { ...bar, ...updates } : bar
-        )
-      })),
-
-      removeBar: (id) => set((state) => ({
-        bars: state.bars.filter(bar => bar.id !== id),
-        featuredBarIds: (state.featuredBarIds || []).filter(barId => barId !== id)
-      })),
-
-      toggleFeaturedBar: (barId) => set((state) => {
-        const currentIds = state.featuredBarIds || []
-        return {
-          featuredBarIds: currentIds.includes(barId)
-            ? currentIds.filter(id => id !== barId)
-            : [...currentIds, barId]
+      addBar: async (bar) => {
+        try {
+          const createdBar = await barsAPI.create({
+            name: bar.name,
+            nameEn: bar.nameEn,
+            districtId: bar.districtId,
+            address: bar.address,
+            image: bar.image,
+            rating: bar.rating,
+            drinks: bar.drinks,
+          })
+          set((state) => ({
+            bars: [...state.bars, createdBar],
+            featuredBarIds: createdBar.isFeatured
+              ? [...(state.featuredBarIds || []), createdBar.id]
+              : state.featuredBarIds,
+          }))
+        } catch (error) {
+          console.error('Failed to add bar:', error)
+          throw error
         }
-      }),
+      },
+
+      updateBar: async (id, updates) => {
+        try {
+          const updatedBar = await barsAPI.update(id, updates)
+          set((state) => ({
+            bars: state.bars.map((bar) =>
+              bar.id === id ? { ...bar, ...updatedBar } : bar
+            ),
+            featuredBarIds: updatedBar.isFeatured
+              ? Array.from(new Set([...(state.featuredBarIds || []), id]))
+              : (state.featuredBarIds || []).filter((barId) => barId !== id),
+          }))
+        } catch (error) {
+          console.error('Failed to update bar:', error)
+          throw error
+        }
+      },
+
+      removeBar: async (id) => {
+        try {
+          await barsAPI.remove(id)
+          set((state) => ({
+            bars: state.bars.filter((bar) => bar.id !== id),
+            featuredBarIds: (state.featuredBarIds || []).filter(
+              (barId) => barId !== id
+            ),
+          }))
+        } catch (error) {
+          console.error('Failed to remove bar:', error)
+          throw error
+        }
+      },
+
+      toggleFeaturedBar: async (barId) => {
+        try {
+          const updatedBar = await barsAPI.toggleFeatured(barId)
+          set((state) => {
+            const currentIds = state.featuredBarIds || []
+            const nextFeatured = updatedBar.isFeatured
+              ? Array.from(new Set([...currentIds, barId]))
+              : currentIds.filter((id) => id !== barId)
+            return {
+              featuredBarIds: nextFeatured,
+              bars: state.bars.map((bar) =>
+                bar.id === barId ? { ...bar, isFeatured: updatedBar.isFeatured } : bar
+              ),
+            }
+          })
+        } catch (error) {
+          console.error('Failed to toggle featured bar:', error)
+        }
+      },
 
       getFeaturedBars: () => {
         const state = get()
         const featuredIds = state.featuredBarIds || []
         return state.bars.filter(bar => featuredIds.includes(bar.id))
+      },
+
+      adminLogin: async (password) => {
+        try {
+          const response = await authAPI.adminLogin(password)
+          if (!response.token) {
+            return false
+          }
+
+          const bars: Bar[] = await barsAPI.getAll()
+          set({
+            isAdminAuthenticated: true,
+            bars,
+            featuredBarIds: bars.filter((bar) => bar.isFeatured).map((bar) => bar.id),
+          })
+          return true
+        } catch (error) {
+          console.error('Admin login failed:', error)
+          return false
+        }
+      },
+
+      adminLogout: () => {
+        authAPI.adminLogout()
+        set({ isAdminAuthenticated: false })
       },
 
       // Party actions

@@ -1,7 +1,8 @@
 import axios from 'axios';
-import { User } from '../types';
+import { User, Bar } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export const ADMIN_TOKEN_KEY = 'admin_token';
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
@@ -18,6 +19,18 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+const getAdminHeaders = () => {
+  const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+  if (!token) {
+    throw new Error('Admin authentication required');
+  }
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+};
 
 // Auth API
 export const authAPI = {
@@ -50,6 +63,18 @@ export const authAPI = {
     const { data } = await api.put('/auth/profile', updates);
     return data;
   },
+
+  adminLogin: async (password: string) => {
+    const { data } = await api.post('/auth/admin/login', { password });
+    if (data.token) {
+      localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+    }
+    return data;
+  },
+
+  adminLogout: () => {
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+  },
 };
 
 // Bars API
@@ -61,6 +86,26 @@ export const barsAPI = {
 
   getById: async (id: string) => {
     const { data } = await api.get(`/bars/${id}`);
+    return data;
+  },
+
+  create: async (bar: Omit<Bar, 'id' | 'isFeatured'>) => {
+    const { data } = await api.post('/bars', bar, getAdminHeaders());
+    return data;
+  },
+
+  update: async (id: string, updates: Partial<Bar>) => {
+    const { data } = await api.put(`/bars/${id}`, updates, getAdminHeaders());
+    return data;
+  },
+
+  remove: async (id: string) => {
+    const { data } = await api.delete(`/bars/${id}`, getAdminHeaders());
+    return data;
+  },
+
+  toggleFeatured: async (id: string) => {
+    const { data } = await api.post(`/bars/${id}/toggle-featured`, undefined, getAdminHeaders());
     return data;
   },
 };
@@ -140,32 +185,32 @@ export const partiesAPI = {
 // Admin API
 export const adminAPI = {
   getAllMembers: async () => {
-    const { data } = await api.get('/admin/members');
+    const { data } = await api.get('/admin/members', getAdminHeaders());
     return data;
   },
 
   updateMember: async (id: string, updates: Partial<User>) => {
-    const { data } = await api.put(`/admin/members/${id}`, updates);
+    const { data } = await api.put(`/admin/members/${id}`, updates, getAdminHeaders());
     return data;
   },
 
   deleteMember: async (id: string) => {
-    const { data } = await api.delete(`/admin/members/${id}`);
+    const { data } = await api.delete(`/admin/members/${id}`, getAdminHeaders());
     return data;
   },
 
   getAllPasses: async () => {
-    const { data } = await api.get('/admin/passes');
+    const { data } = await api.get('/admin/passes', getAdminHeaders());
     return data;
   },
 
   getPaymentSettings: async () => {
-    const { data } = await api.get('/admin/payment-settings');
+    const { data } = await api.get('/admin/payment-settings', getAdminHeaders());
     return data;
   },
 
   updatePaymentSettings: async (settings: any) => {
-    const { data } = await api.put('/admin/payment-settings', settings);
+    const { data } = await api.put('/admin/payment-settings', settings, getAdminHeaders());
     return data;
   },
 };

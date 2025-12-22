@@ -1,26 +1,39 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, QrCode, CheckCircle, XCircle, Clock, Store, CreditCard, Plus, Pencil, Trash2, X, Lock, LogOut, PartyPopper, UserCog, DollarSign, Crown, Ban, Star, Settings } from 'lucide-react'
+import { ArrowLeft, QrCode, CheckCircle, XCircle, Clock, Store, CreditCard, Plus, Pencil, Trash2, X, Lock, LogOut, PartyPopper, UserCog, DollarSign, Crown, Ban, Star, Settings, Loader2 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { districts } from '../data/districts'
 import { Bar } from '../types'
 import { format } from 'date-fns'
 
-// Admin credentials (in production, use env vars or backend auth)
-const ADMIN_PASSWORD = 'onenightdrink2024'
-
 export default function Admin() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return sessionStorage.getItem('admin_auth') === 'true'
-  })
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [isSavingBar, setIsSavingBar] = useState(false)
   
   const [activeTab, setActiveTab] = useState<'payments' | 'parties' | 'members' | 'bars' | 'settings'>('payments')
   const [scanResult, setScanResult] = useState<any>(null)
   const [manualCode, setManualCode] = useState('')
   const store = useStore()
-  const { activePasses, bars, addBar, updateBar, removeBar, parties, cancelParty, members, updateMember, removeMember, toggleFeaturedBar, paymentSettings, updatePaymentSettings } = store
+  const { 
+    activePasses, 
+    bars, 
+    addBar, 
+    updateBar, 
+    removeBar, 
+    parties, 
+    cancelParty, 
+    members, 
+    updateMember, 
+    removeMember, 
+    toggleFeaturedBar, 
+    paymentSettings, 
+    updatePaymentSettings,
+    isAdminAuthenticated,
+    adminLogin,
+    adminLogout
+  } = store
   const featuredBarIds = store.featuredBarIds || []
 
   // Bar form state - must be declared before any early returns
@@ -36,24 +49,34 @@ export default function Admin() {
     drinks: ''
   })
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true)
-      sessionStorage.setItem('admin_auth', 'true')
+    if (!password.trim()) {
+      setAuthError('請輸入密碼')
+      return
+    }
+    try {
+      setIsLoggingIn(true)
       setAuthError('')
-    } else {
-      setAuthError('密碼錯誤')
+      const success = await adminLogin(password.trim())
+      if (!success) {
+        setAuthError('密碼錯誤或登入失敗')
+      } else {
+        setPassword('')
+      }
+    } catch {
+      setAuthError('登入失敗，請重試')
+    } finally {
+      setIsLoggingIn(false)
     }
   }
 
   const handleLogout = () => {
-    setIsAuthenticated(false)
-    sessionStorage.removeItem('admin_auth')
+    adminLogout()
   }
 
   // Login screen
-  if (!isAuthenticated) {
+  if (!isAdminAuthenticated) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -88,9 +111,17 @@ export default function Admin() {
             )}
             <button
               type="submit"
-              className="w-full bg-primary-500 text-dark-900 font-semibold py-3 rounded-lg"
+              disabled={isLoggingIn}
+              className="w-full bg-primary-500 text-dark-900 font-semibold py-3 rounded-lg flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              登入
+              {isLoggingIn ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  登入中...
+                </>
+              ) : (
+                '登入'
+              )}
             </button>
           </form>
         </div>
@@ -126,39 +157,58 @@ export default function Admin() {
     setShowBarForm(true)
   }
 
-  const handleSubmitBar = (e: React.FormEvent) => {
+  const handleSubmitBar = async (e: React.FormEvent) => {
     e.preventDefault()
     const drinksArray = barForm.drinks.split(',').map(d => d.trim()).filter(Boolean)
     
-    if (editingBar) {
-      updateBar(editingBar.id, {
-        name: barForm.name,
-        nameEn: barForm.nameEn,
-        districtId: barForm.districtId,
-        address: barForm.address,
-        image: barForm.image,
-        rating: barForm.rating,
-        drinks: drinksArray
-      })
-    } else {
-      const newBar: Bar = {
-        id: `bar-${Date.now()}`,
-        name: barForm.name,
-        nameEn: barForm.nameEn,
-        districtId: barForm.districtId,
-        address: barForm.address,
-        image: barForm.image,
-        rating: barForm.rating,
-        drinks: drinksArray
+    try {
+      setIsSavingBar(true)
+      if (editingBar) {
+        await updateBar(editingBar.id, {
+          name: barForm.name,
+          nameEn: barForm.nameEn,
+          districtId: barForm.districtId,
+          address: barForm.address,
+          image: barForm.image,
+          rating: barForm.rating,
+          drinks: drinksArray
+        })
+      } else {
+        await addBar({
+          name: barForm.name,
+          nameEn: barForm.nameEn,
+          districtId: barForm.districtId,
+          address: barForm.address,
+          image: barForm.image,
+          rating: barForm.rating,
+          drinks: drinksArray
+        })
       }
-      addBar(newBar)
+      resetBarForm()
+    } catch (error) {
+      console.error('Failed to save bar', error)
+      alert('儲存酒吧失敗，請稍後再試')
+    } finally {
+      setIsSavingBar(false)
     }
-    resetBarForm()
   }
 
-  const handleDeleteBar = (id: string, name: string) => {
-    if (confirm(`確定要刪除「${name}」嗎？`)) {
-      removeBar(id)
+  const handleDeleteBar = async (id: string, name: string) => {
+    if (!confirm(`確定要刪除「${name}」嗎？`)) return
+    try {
+      await removeBar(id)
+    } catch (error) {
+      console.error('Failed to delete bar', error)
+      alert('刪除失敗，請稍後再試')
+    }
+  }
+
+  const handleToggleFeatured = async (id: string) => {
+    try {
+      await toggleFeaturedBar(id)
+    } catch (error) {
+      console.error('Failed to toggle featured', error)
+      alert('更新精選狀態失敗，請稍後再試')
     }
   }
 
@@ -643,9 +693,17 @@ export default function Admin() {
                 </div>
                 <button
                   type="submit"
-                  className="w-full bg-primary-500 text-dark-900 font-semibold py-2 rounded-lg"
+                  disabled={isSavingBar}
+                  className="w-full bg-primary-500 text-dark-900 font-semibold py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-60"
                 >
-                  {editingBar ? '儲存變更' : '新增酒吧'}
+                  {isSavingBar ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      儲存中...
+                    </>
+                  ) : (
+                    editingBar ? '儲存變更' : '新增酒吧'
+                  )}
                 </button>
               </form>
             </div>
@@ -676,7 +734,7 @@ export default function Admin() {
                         </div>
                         <div className="flex items-center gap-1 ml-2">
                           <button
-                            onClick={() => toggleFeaturedBar(bar.id)}
+                            onClick={() => handleToggleFeatured(bar.id)}
                             className={`p-2 hover:bg-white/10 rounded ${
                               featuredBarIds.includes(bar.id) 
                                 ? 'text-yellow-500' 
