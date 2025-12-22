@@ -1,1 +1,12 @@
 node_modules
+dist
+dist-ssr
+*.local
+
+# Android
+android/app/build
+android/app/.cxx
+android/.gradle
+android/build
+*.apk
+*.aab

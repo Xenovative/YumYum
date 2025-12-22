@@ -48,10 +48,12 @@ export default function BarDetail() {
     e.preventDefault()
     if (name.trim() && phone.trim() && email.trim() && password.trim()) {
       setIsRegistering(true)
-      await register(email.trim(), password.trim(), name.trim(), phone.trim())
+      const success = await register(email.trim(), password.trim(), name.trim(), phone.trim())
       setIsRegistering(false)
-      setShowLogin(false)
-      proceedToPayment()
+      if (success) {
+        setShowLogin(false)
+        proceedToPayment()
+      }
     }
   }
 

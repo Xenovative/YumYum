@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">OneNightDrink</string>
+    <string name="title_activity_main">OneNightDrink 暢飲通行證</string>
+    <string name="package_name">com.onenightdrink.app</string>
+    <string name="custom_url_scheme">com.onenightdrink.app</string>
+</resources>
