@@ -169,7 +169,7 @@ if [[ "$SKIP_UPSTREAM_CHECK" != "1" ]] && command -v ss >/dev/null 2>&1; then
   fi
 fi
 
-CERTBOT_ARGS=(--nginx -n --agree-tos --redirect -m "$EMAIL")
+CERTBOT_ARGS=(--webroot -w "$WEBROOT" -n --agree-tos -m "$EMAIL")
 if [[ "$CERTBOT_STAGING" == "1" ]]; then
   CERTBOT_ARGS+=(--staging)
 fi
@@ -178,6 +178,55 @@ for d in "${DOMAINS[@]}"; do
 done
 
 certbot "${CERTBOT_ARGS[@]}"
+
+CERT_PATH="/etc/letsencrypt/live/${WWW_DOMAIN}"
+if [[ -d "$CERT_PATH" ]]; then
+  cat > "$NGINX_AVAILABLE" <<EOF
+server {
+  listen 80;
+  listen [::]:80;
+
+  server_name ${SERVER_NAMES};
+
+  root ${WEBROOT};
+
+  location /.well-known/acme-challenge/ {
+    try_files \$uri =404;
+  }
+
+  location / {
+    return 301 https://\$host\$request_uri;
+  }
+}
+
+server {
+  listen 443 ssl http2;
+  listen [::]:443 ssl http2;
+
+  server_name ${SERVER_NAMES};
+
+  ssl_certificate ${CERT_PATH}/fullchain.pem;
+  ssl_certificate_key ${CERT_PATH}/privkey.pem;
+  ssl_protocols TLSv1.2 TLSv1.3;
+  ssl_ciphers HIGH:!aNULL:!MD5;
+
+  location / {
+    proxy_pass http://${UPSTREAM_FOR_PROXY}:${APP_PORT};
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection "upgrade";
+  }
+}
+EOF
+
+  if [[ -n "$NGINX_ENABLED" ]]; then
+    ln -sf "$NGINX_AVAILABLE" "$NGINX_ENABLED"
+  fi
+fi
 
 systemctl reload nginx
 
