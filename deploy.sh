@@ -105,19 +105,13 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Install serve globally if not present
-if ! command -v serve &> /dev/null; then
-    echo "Installing serve..."
-    npm install -g serve
-fi
-
 # Stop existing frontend process
 pm2 stop "$APP_NAME-frontend" 2>/dev/null || true
 pm2 delete "$APP_NAME-frontend" 2>/dev/null || true
 
-# Start frontend with PM2
+# Start frontend with PM2 static server (no external serve dependency)
 echo "Starting frontend on port $FRONTEND_PORT..."
-pm2 start serve --name "$APP_NAME-frontend" -- -s dist -l $FRONTEND_PORT
+pm2 serve dist $FRONTEND_PORT --spa --name "$APP_NAME-frontend"
 
 # Save PM2 configuration
 pm2 save
