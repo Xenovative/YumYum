@@ -83,7 +83,7 @@ else
   echo "This script currently supports Debian/Ubuntu (apt-get)."; exit 1
 fi
 
-NGINX_CONF_NAME="onenightdrink"
+NGINX_CONF_NAME="00-onenightdrink"
 NGINX_ROOT="/etc/nginx"
 NGINX_AVAILABLE=""
 NGINX_ENABLED=""
