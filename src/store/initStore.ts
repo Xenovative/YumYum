@@ -3,6 +3,9 @@ import { authAPI, passesAPI, partiesAPI } from '../services/api';
 
 // Initialize store with data from API
 export async function initializeStore() {
+  if (initializeStore._didInit) return;
+  initializeStore._didInit = true;
+
   try {
     // Always refresh public data (bars + open parties) on every load
     await useStore.getState().refreshPublicData?.();
@@ -46,3 +49,6 @@ export async function initializeStore() {
     console.error('Failed to initialize store:', error);
   }
 }
+
+// track whether we've already run init in this session
+initializeStore._didInit = false as boolean;
