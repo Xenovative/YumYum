@@ -164,6 +164,44 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
+// Alias for profile to match frontend path
+router.get('/profile', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const result = await query(
+      `SELECT id, email, name, phone, avatar, display_name, gender, age, height_cm, drink_capacity,
+              membership_tier, membership_expiry, joined_at, total_spent, total_visits
+       FROM users WHERE id = $1`,
+      [req.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = result.rows[0];
+    res.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      avatar: user.avatar,
+      displayName: user.display_name,
+      gender: user.gender,
+      age: user.age,
+      heightCm: user.height_cm,
+      drinkCapacity: user.drink_capacity,
+      membershipTier: user.membership_tier,
+      membershipExpiry: user.membership_expiry,
+      joinedAt: user.joined_at,
+      totalSpent: parseFloat(user.total_spent),
+      totalVisits: user.total_visits
+    });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
 router.put('/profile', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { name, phone, avatar, displayName, gender, age, heightCm, drinkCapacity } = req.body;
