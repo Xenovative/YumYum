@@ -298,10 +298,16 @@ export const useStore = create<AppState>()(
           const reservation = state.pendingReservation
           if (!reservation) throw new Error('No pending reservation')
           
+          const { barId, barName, personCount, totalPrice, platformFee, barPayment } = reservation
           const createdPass = await passesAPI.create(
-            reservation.barId,
-            reservation.personCount,
-            new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+            barId,
+            barName,
+            personCount,
+            totalPrice,
+            platformFee,
+            barPayment,
+            undefined,
+            undefined
           )
           set((state) => ({
             activePasses: [...state.activePasses, createdPass],

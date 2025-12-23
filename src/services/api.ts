@@ -112,8 +112,17 @@ export const barsAPI = {
 
 // Passes API
 export const passesAPI = {
-  create: async (barId: string, personCount: number, partyTime: Date) => {
-    const { data } = await api.post('/passes', { barId, personCount, partyTime });
+  create: async (
+    barId: string,
+    barName: string,
+    personCount: number,
+    totalPrice: number,
+    platformFee: number,
+    barPayment: number,
+    transactionId?: string | null,
+    paymentMethod?: string | null
+  ) => {
+    const { data } = await api.post('/passes', { barId, barName, personCount, totalPrice, platformFee, barPayment, transactionId, paymentMethod });
     return data;
   },
 
