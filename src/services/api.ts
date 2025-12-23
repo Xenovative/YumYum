@@ -166,6 +166,8 @@ export const partiesAPI = {
 
   create: async (partyData: {
     passId: string;
+    barId: string;
+    barName: string;
     title: string;
     description: string;
     maxFemaleGuests: number;

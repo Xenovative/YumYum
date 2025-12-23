@@ -527,6 +527,8 @@ export const useStore = create<AppState>()(
         try {
           const newParty = await partiesAPI.create({
             passId: partyData.passId,
+            barId: partyData.barId,
+            barName: partyData.barName,
             title: partyData.title,
             description: partyData.description || '',
             maxFemaleGuests: partyData.maxFemaleGuests,
