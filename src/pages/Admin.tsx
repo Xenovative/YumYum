@@ -284,7 +284,73 @@ export default function Admin() {
   const partyFullCount = partyList.filter(p => p.status === 'full').length
   const partyTotalCount = partyList.length
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
-  const selectedMember = members.find((m) => m.id === selectedMemberId)
+  const selectedMember = selectedMemberId ? members.find((m) => m.id === selectedMemberId) : null
+  const selectedMemberModal = selectedMember ? (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-dark-900 rounded-2xl w-full max-w-lg p-6 space-y-4 border border-gray-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {selectedMember.avatar ? (
+              <img src={selectedMember.avatar} alt="" className="w-12 h-12 rounded-full bg-dark-800" />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center">
+                <span className="text-lg font-bold text-primary-400">
+                  {(selectedMember.displayName || selectedMember.name).charAt(0)}
+                </span>
+              </div>
+            )}
+            <div>
+              <p className="font-semibold">{selectedMember.displayName || selectedMember.name}</p>
+              <p className="text-xs text-gray-400">{selectedMember.email}</p>
+              {selectedMember.gender && (
+                <p className="text-xs text-gray-400">
+                  性別: {selectedMember.gender === 'female' ? '女' : selectedMember.gender === 'male' ? '男' : '其他'}
+                </p>
+              )}
+            </div>
+          </div>
+          <button onClick={() => setSelectedMemberId(null)} className="text-gray-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 text-sm text-gray-300">
+          <div className="glass rounded-lg p-3">
+            <p className="text-xs text-gray-500">年齡</p>
+            <p>{selectedMember.age ?? '—'}</p>
+          </div>
+          <div className="glass rounded-lg p-3">
+            <p className="text-xs text-gray-500">身高 (cm)</p>
+            <p>{selectedMember.heightCm ?? '—'}</p>
+          </div>
+          <div className="glass rounded-lg p-3">
+            <p className="text-xs text-gray-500">酒量</p>
+            <p>{selectedMember.drinkCapacity ?? '—'}</p>
+          </div>
+          <div className="glass rounded-lg p-3">
+            <p className="text-xs text-gray-500">會員</p>
+            <p className="capitalize">{selectedMember.membershipTier}</p>
+          </div>
+          <div className="glass rounded-lg p-3">
+            <p className="text-xs text-gray-500">總消費</p>
+            <p>HK${selectedMember.totalSpent}</p>
+          </div>
+          <div className="glass rounded-lg p-3">
+            <p className="text-xs text-gray-500">到訪次數</p>
+            <p>{selectedMember.totalVisits}</p>
+          </div>
+        </div>
+
+        <div className="glass rounded-lg p-3 text-xs text-gray-400 space-y-1">
+          <p>電話: {selectedMember.phone || '—'}</p>
+          <p>加入時間: {selectedMember.joinedAt ? format(new Date(selectedMember.joinedAt), 'yyyy-MM-dd HH:mm') : '—'}</p>
+          {selectedMember.membershipExpiry && (
+            <p>到期: {format(new Date(selectedMember.membershipExpiry), 'yyyy-MM-dd')}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  ) : null
 
   return (
     <div className="space-y-6">
@@ -649,6 +715,8 @@ export default function Admin() {
           </div>
         </div>
       )}
+
+      {selectedMemberModal}
 
       {/* Bars Tab */}
       {activeTab === 'bars' && (
