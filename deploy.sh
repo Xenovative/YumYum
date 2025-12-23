@@ -94,7 +94,7 @@ cd "$APP_DIR"
 
 # Install frontend dependencies
 echo "Installing frontend dependencies..."
-npm install
+npm install --legacy-peer-deps
 
 # Build frontend
 echo "Building frontend..."
