@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, QrCode, CheckCircle, XCircle, Clock, Store, CreditCard, Plus, Pencil, Trash2, X, Lock, LogOut, PartyPopper, UserCog, DollarSign, Crown, Ban, Star, Settings, Loader2 } from 'lucide-react'
+import { ArrowLeft, QrCode, CheckCircle, XCircle, Clock, Store, CreditCard, Plus, Pencil, Trash2, X, Lock, LogOut, PartyPopper, UserCog, DollarSign, Crown, Ban, Star, Settings, Loader2, UserCircle2 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { districts } from '../data/districts'
 import { Bar } from '../types'
@@ -283,6 +283,8 @@ export default function Admin() {
   const partyOpenCount = partyList.filter(p => p.status === 'open').length
   const partyFullCount = partyList.filter(p => p.status === 'full').length
   const partyTotalCount = partyList.length
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
+  const selectedMember = members.find((m) => m.id === selectedMemberId)
 
   return (
     <div className="space-y-6">
@@ -562,10 +564,29 @@ export default function Admin() {
                              member.membershipTier === 'premium' ? '高級' : '免費'}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 truncate">{member.email}</p>
-                        <p className="text-xs text-gray-600">
-                          {member.phone || '無電話'} · 註冊: {format(new Date(member.joinedAt), 'MM/dd')}
-                        </p>
+                        <p className="text-xs text-gray-500">{member.email}</p>
+                        <p className="text-xs text-gray-500">電話: {member.phone || '—'}</p>
+                        <div className="flex flex-wrap gap-2 text-[11px] text-gray-500 mt-1">
+                          {member.age && <span>年齡: {member.age}</span>}
+                          {member.heightCm && <span>身高: {member.heightCm}cm</span>}
+                          {member.drinkCapacity && <span>酒量: {member.drinkCapacity}</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedMemberId(member.id)}
+                          className="p-2 rounded-lg glass text-primary-400 hover:text-primary-200"
+                          title="查看檔案"
+                        >
+                          <UserCircle2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => removeMember(member.id)}
+                          className="p-2 rounded-lg glass text-red-400 hover:text-red-300"
+                          title="刪除會員"
+                        >
+                          <Ban className="w-3 h-3" />
+                        </button>
                       </div>
                     </div>
                     {/* Action Buttons */}

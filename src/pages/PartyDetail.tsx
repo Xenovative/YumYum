@@ -1,5 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Users, MapPin, Clock, Crown, UserPlus, UserMinus, X } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowLeft, Users, MapPin, Clock, Crown, UserPlus, UserMinus, X, UserCircle2 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { format } from 'date-fns'
 import { zhTW } from 'date-fns/locale'
@@ -10,6 +11,7 @@ export default function PartyDetail() {
   const { user, isLoggedIn, parties, joinParty, leaveParty, cancelParty } = useStore()
   
   const party = parties.find(p => p.id === partyId)
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
 
   if (!party) {
     return (
@@ -26,6 +28,8 @@ export default function PartyDetail() {
       </div>
     )
   }
+
+  const selectedMember = party?.currentGuests.find((g) => g.userId === selectedMemberId)
 
   const isHost = user?.id === party.hostId
   const hasJoined = party.currentGuests.some(g => g.userId === user?.id)
@@ -156,11 +160,57 @@ export default function PartyDetail() {
                 {guest.userId === user?.id && (
                   <span className="text-xs bg-primary-500/20 text-primary-400 px-2 py-0.5 rounded">你</span>
                 )}
+                <button
+                  onClick={() => setSelectedMemberId(guest.userId)}
+                  className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
+                >
+                  <UserCircle2 className="w-4 h-4" />
+                  查看檔案
+                </button>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {selectedMember && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-dark-900 rounded-2xl w-full max-w-md p-6 space-y-4 border border-gray-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {selectedMember.avatar ? (
+                  <img src={selectedMember.avatar} alt="" className="w-12 h-12 rounded-full bg-dark-800" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center">
+                    <span className="text-lg font-bold text-primary-400">
+                      {(selectedMember.displayName || selectedMember.name).charAt(0)}
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <p className="font-semibold">{selectedMember.displayName || selectedMember.name}</p>
+                  {selectedMember.gender && (
+                    <p className="text-xs text-gray-400">性別: {selectedMember.gender === 'female' ? '女' : selectedMember.gender === 'male' ? '男' : '其他'}</p>
+                  )}
+                </div>
+              </div>
+              <button onClick={() => setSelectedMemberId(null)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm text-gray-300">
+              <div className="glass rounded-lg p-3">
+                <p className="text-xs text-gray-500">加入時間</p>
+                <p>{format(new Date(selectedMember.joinedAt), 'MM/dd HH:mm')}</p>
+              </div>
+              <div className="glass rounded-lg p-3">
+                <p className="text-xs text-gray-500">ID</p>
+                <p className="break-all">{selectedMember.userId}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="space-y-3">

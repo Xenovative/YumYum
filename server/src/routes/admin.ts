@@ -7,7 +7,7 @@ const router = Router();
 router.get('/members', authenticateAdmin, async (req, res) => {
   try {
     const result = await query(
-      `SELECT id, email, name, phone, avatar, display_name, gender, 
+      `SELECT id, email, name, phone, avatar, display_name, gender, age, height_cm, drink_capacity,
               membership_tier, membership_expiry, joined_at, total_spent, total_visits
        FROM users 
        ORDER BY joined_at DESC`
@@ -21,6 +21,9 @@ router.get('/members', authenticateAdmin, async (req, res) => {
       avatar: row.avatar,
       displayName: row.display_name,
       gender: row.gender,
+      age: row.age,
+      heightCm: row.height_cm,
+      drinkCapacity: row.drink_capacity,
       membershipTier: row.membership_tier,
       membershipExpiry: row.membership_expiry,
       joinedAt: row.joined_at,
@@ -46,7 +49,7 @@ router.put('/members/:id', authenticateAdmin, async (req, res) => {
            updated_at = NOW()
        WHERE id = $3
        RETURNING id, email, name, phone, avatar, display_name, gender, 
-                 membership_tier, membership_expiry, joined_at, total_spent, total_visits`,
+                 age, height_cm, drink_capacity, membership_tier, membership_expiry, joined_at, total_spent, total_visits`,
       [membershipTier, membershipExpiry, req.params.id]
     );
 
