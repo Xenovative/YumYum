@@ -205,6 +205,63 @@ router.get('/my-joined', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
+// Get single party by id (used after join to refresh)
+router.get('/:id', async (req, res) => {
+  try {
+    const partyResult = await query(
+      `SELECT p.id, p.host_id, p.host_name, p.host_display_name, p.host_avatar,
+              p.pass_id, p.bar_id, p.bar_name, p.title, p.description,
+              p.max_female_guests, p.party_time, p.status, p.created_at
+       FROM parties p
+       WHERE p.id = $1`,
+      [req.params.id]
+    );
+
+    if (partyResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Party not found' });
+    }
+
+    const membersResult = await query(
+      `SELECT party_id, user_id, name, display_name, avatar, gender, joined_at
+       FROM party_members
+       WHERE party_id = $1
+       ORDER BY joined_at ASC`,
+      [req.params.id]
+    );
+
+    const row = partyResult.rows[0];
+    const party = {
+      id: row.id,
+      hostId: row.host_id,
+      hostName: row.host_name,
+      hostDisplayName: row.host_display_name,
+      hostAvatar: row.host_avatar,
+      passId: row.pass_id,
+      barId: row.bar_id,
+      barName: row.bar_name,
+      title: row.title,
+      description: row.description,
+      maxFemaleGuests: row.max_female_guests,
+      partyTime: row.party_time,
+      status: row.status,
+      currentGuests: membersResult.rows.map(member => ({
+        userId: member.user_id,
+        name: member.name,
+        displayName: member.display_name,
+        avatar: member.avatar,
+        gender: member.gender,
+        joinedAt: member.joined_at
+      })),
+      createdAt: row.created_at
+    };
+
+    res.json(party);
+  } catch (error) {
+    console.error('Get party by id error:', error);
+    res.status(500).json({ error: 'Failed to fetch party' });
+  }
+});
+
 router.post('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const data = createPartySchema.parse(req.body);

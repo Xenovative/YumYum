@@ -29,7 +29,18 @@ export default function PartyDetail() {
     )
   }
 
-  const selectedMember = party?.currentGuests.find((g) => g.userId === selectedMemberId)
+  const hostMember = {
+    userId: party.hostId,
+    name: party.hostName,
+    displayName: party.hostDisplayName,
+    avatar: party.hostAvatar,
+    gender: undefined as string | undefined,
+    joinedAt: party.createdAt || party.partyTime || new Date().toISOString(),
+  }
+
+  const selectedMember = selectedMemberId === party.hostId
+    ? hostMember
+    : party?.currentGuests.find((g) => g.userId === selectedMemberId)
 
   const isHost = user?.id === party.hostId
   const hasJoined = party.currentGuests.some(g => g.userId === user?.id)
@@ -107,6 +118,13 @@ export default function PartyDetail() {
              party.status === 'full' ? '已滿' : 
              party.status === 'cancelled' ? '已取消' : party.status}
           </span>
+          <button
+            onClick={() => setSelectedMemberId(party.hostId)}
+            className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
+          >
+            <UserCircle2 className="w-4 h-4" />
+            查看檔案
+          </button>
         </div>
 
         {party.description && (
