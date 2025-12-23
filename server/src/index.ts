@@ -6,7 +6,7 @@ import barsRoutes from './routes/bars.js';
 import passesRoutes from './routes/passes.js';
 import partiesRoutes from './routes/parties.js';
 import adminRoutes from './routes/admin.js';
-import barPortalRoutes from './routes/barPortal';
+import barPortalRoutes from './routes/barPortal.js';
 
 dotenv.config();
 
