@@ -90,6 +90,9 @@ export interface User {
   displayName?: string
   avatar?: string
   gender?: Gender
+  age?: number
+  heightCm?: number
+  drinkCapacity?: string
   membershipTier: MembershipTier
   membershipExpiry?: Date
   joinedAt: Date

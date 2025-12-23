@@ -155,7 +155,7 @@ interface AppState {
   register: (email: string, password: string, name: string, phone: string) => Promise<boolean>
   login: (email: string, password: string) => Promise<boolean>
   logout: () => void
-  updateProfile: (updates: Partial<User>) => void
+  updateProfile: (updates: Partial<User>) => Promise<void>
   upgradeMembership: (tier: MembershipTier) => void
   
   // Reservation actions
@@ -268,9 +268,17 @@ export const useStore = create<AppState>()(
         })
       },
 
-      updateProfile: (updates) => set((state) => ({
-        user: state.user ? { ...state.user, ...updates } : null
-      })),
+      updateProfile: async (updates) => {
+        try {
+          const updated = await authAPI.updateProfile(updates)
+          set((state) => ({
+            user: state.user ? { ...state.user, ...updated } : null
+          }))
+        } catch (error) {
+          console.error('Failed to update profile:', error)
+          throw error
+        }
+      },
 
       upgradeMembership: (tier) => set((state) => ({
         user: state.user ? { 

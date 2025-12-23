@@ -1,4 +1,11 @@
-<!DOCTYPE html>
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const distIndex = path.join(__dirname, '..', 'dist', 'index.html');
+
+const html = `<!DOCTYPE html>
 <html lang="zh-HK">
   <head>
     <meta charset="UTF-8" />
@@ -16,3 +23,7 @@
     <p>Redirecting to OneNightDrink...</p>
   </body>
 </html>
+`;
+
+fs.writeFileSync(distIndex, html);
+console.log('✓ dist/index.html replaced with redirect to https://www.one-night-drink.com');

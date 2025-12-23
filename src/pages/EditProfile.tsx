@@ -33,6 +33,9 @@ export default function EditProfile() {
   const [displayName, setDisplayName] = useState(user?.displayName || user?.name || '')
   const [avatar, setAvatar] = useState(user?.avatar || avatarOptions[0])
   const [gender, setGender] = useState<Gender | undefined>(user?.gender)
+  const [age, setAge] = useState<number | undefined>(user?.age)
+  const [heightCm, setHeightCm] = useState<number | undefined>(user?.heightCm)
+  const [drinkCapacity, setDrinkCapacity] = useState<string>(user?.drinkCapacity || '')
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
 
   if (!isLoggedIn || !user) {
@@ -45,6 +48,9 @@ export default function EditProfile() {
       displayName: displayName.trim() || user.name,
       avatar,
       gender,
+      age: age || undefined,
+      heightCm: heightCm || undefined,
+      drinkCapacity: drinkCapacity.trim() || undefined,
     })
     navigate('/profile')
   }
@@ -111,6 +117,55 @@ export default function EditProfile() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Age / Height */}
+      <div className="glass rounded-xl p-6 grid grid-cols-2 gap-4">
+        <div>
+          <h2 className="text-sm text-gray-400 mb-2">年齡</h2>
+          <input
+            type="number"
+            min={18}
+            max={99}
+            value={age ?? ''}
+            onChange={(e) => setAge(e.target.value ? Number(e.target.value) : undefined)}
+            className="w-full bg-dark-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-primary-500"
+            placeholder="輸入年齡"
+          />
+        </div>
+        <div>
+          <h2 className="text-sm text-gray-400 mb-2">身高 (cm)</h2>
+          <input
+            type="number"
+            min={120}
+            max={230}
+            value={heightCm ?? ''}
+            onChange={(e) => setHeightCm(e.target.value ? Number(e.target.value) : undefined)}
+            className="w-full bg-dark-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-primary-500"
+            placeholder="例如 168"
+          />
+        </div>
+      </div>
+
+      {/* Drink Capacity */}
+      <div className="glass rounded-xl p-6">
+        <h2 className="text-sm text-gray-400 mb-4">有幾飲得</h2>
+        <div className="grid grid-cols-2 gap-3">
+          {['淺嚐', '正常', '好飲', '超勁'].map((label) => (
+            <button
+              key={label}
+              onClick={() => setDrinkCapacity(label)}
+              className={`p-3 rounded-lg border transition-all ${
+                drinkCapacity === label
+                  ? 'border-primary-500 bg-primary-500/20 text-primary-500'
+                  : 'border-gray-700 hover:border-gray-600'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500 mt-3">讓酒局主辦了解你的酒量</p>
       </div>
 
       {/* Display Name */}
