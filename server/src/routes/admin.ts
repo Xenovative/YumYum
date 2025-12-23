@@ -1,8 +1,19 @@
 import { Router } from 'express';
+import bcrypt from 'bcrypt';
+import { z } from 'zod';
 import { query } from '../db/index.js';
 import { authenticateAdmin } from '../middleware/auth.js';
 
 const router = Router();
+
+const createBarUserSchema = z.object({
+  barId: z.string(),
+  email: z.string().email(),
+  password: z.string().min(4),
+  displayName: z.string().min(1),
+  role: z.enum(['owner', 'staff']).default('staff'),
+  isActive: z.boolean().optional(),
+});
 
 router.get('/members', authenticateAdmin, async (req, res) => {
   try {
@@ -276,6 +287,47 @@ router.put('/payment-settings', authenticateAdmin, async (req, res) => {
   } catch (error) {
     console.error('Update payment settings error:', error);
     res.status(500).json({ error: 'Failed to update payment settings' });
+  }
+});
+
+// Create bar user account
+router.post('/bar-users', authenticateAdmin, async (req, res) => {
+  try {
+    const { barId, email, password, displayName, role, isActive } = createBarUserSchema.parse(req.body);
+
+    // Ensure bar exists
+    const barResult = await query('SELECT id FROM bars WHERE id = $1', [barId]);
+    if (barResult.rows.length === 0) {
+      return res.status(400).json({ error: 'Bar not found' });
+    }
+
+    // Check for existing email
+    const existing = await query('SELECT id FROM bar_users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ error: 'Email already exists' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const insert = await query(
+      `INSERT INTO bar_users (bar_id, email, password_hash, display_name, role, is_active)
+       VALUES ($1, $2, $3, $4, $5, COALESCE($6, true))
+       RETURNING id, bar_id, email, display_name, role, is_active, created_at`,
+      [barId, email, passwordHash, displayName, role, isActive]
+    );
+
+    const row = insert.rows[0];
+    res.status(201).json({
+      id: row.id,
+      barId: row.bar_id,
+      email: row.email,
+      displayName: row.display_name,
+      role: row.role,
+      isActive: row.is_active,
+      createdAt: row.created_at,
+    });
+  } catch (error: any) {
+    console.error('Create bar user error:', error);
+    res.status(400).json({ error: error?.message || 'Failed to create bar user' });
   }
 });
 

@@ -78,6 +78,29 @@ export const authAPI = {
   },
 };
 
+// Admin bar users API
+export const adminBarUsersAPI = {
+  create: async (input: {
+    barId: string;
+    email: string;
+    password: string;
+    displayName: string;
+    role?: 'owner' | 'staff';
+    isActive?: boolean;
+  }) => {
+    const { data } = await api.post('/admin/bar-users', input, getAdminHeaders());
+    return data as {
+      id: string;
+      barId: string;
+      email: string;
+      displayName: string;
+      role: 'owner' | 'staff';
+      isActive: boolean;
+      createdAt: string;
+    };
+  },
+};
+
 // Bars API
 export const barsAPI = {
   getAll: async () => {

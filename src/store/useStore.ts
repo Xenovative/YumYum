@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { ActivePass, Bar, PendingReservation, User, MembershipTier, Party, BarUser } from '../types'
 import { PaymentMethod } from '../services/paymentGateway'
-import { authAPI, passesAPI, partiesAPI, adminAPI, barsAPI, ADMIN_TOKEN_KEY, barPortalAPI, BAR_TOKEN_KEY } from '../services/api'
+import { authAPI, barsAPI, passesAPI, partiesAPI, adminAPI, barPortalAPI, ADMIN_TOKEN_KEY, BAR_TOKEN_KEY, adminBarUsersAPI } from '../services/api'
 
 const STORAGE_KEY = 'onenightdrink-storage'
 const LEGACY_STORAGE_KEY = 'yumyum-storage'
@@ -179,6 +179,14 @@ interface AppState {
   removeBar: (id: string) => Promise<void>
   toggleFeaturedBar: (barId: string) => Promise<void>
   getFeaturedBars: () => Bar[]
+  createBarUser: (input: {
+    barId: string
+    email: string
+    password: string
+    displayName: string
+    role?: 'owner' | 'staff'
+    isActive?: boolean
+  }) => Promise<void>
   adminLogin: (password: string) => Promise<boolean>
   adminLogout: () => void
 
@@ -280,6 +288,15 @@ export const useStore = create<AppState>()(
         } catch (error) {
           console.error('Failed to load bar profile:', error)
           get().barLogout()
+        }
+      },
+
+      createBarUser: async (input) => {
+        try {
+          await adminBarUsersAPI.create(input)
+        } catch (error) {
+          console.error('Failed to create bar user:', error)
+          throw error
         }
       },
       loadBarPassesToday: async () => {

@@ -12,6 +12,7 @@ export default function Admin() {
   const [authError, setAuthError] = useState('')
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [isSavingBar, setIsSavingBar] = useState(false)
+  const [isSavingBarUser, setIsSavingBarUser] = useState(false)
   
   const [activeTab, setActiveTab] = useState<'payments' | 'parties' | 'members' | 'bars' | 'settings'>('payments')
   const [scanResult, setScanResult] = useState<any>(null)
@@ -39,7 +40,8 @@ export default function Admin() {
     adminDataLoading,
     adminDataLoaded,
     adminDataError,
-    loadAdminDashboard
+    loadAdminDashboard,
+    createBarUser,
   } = store
   const featuredBarIds = store.featuredBarIds || []
   const shouldUseAdminData = isAdminAuthenticated && adminDataLoaded
@@ -77,6 +79,14 @@ export default function Admin() {
     rating: 4.0,
     drinks: ''
   })
+  const [barUserForm, setBarUserForm] = useState({
+    barId: '',
+    email: '',
+    password: '',
+    displayName: '',
+    role: 'staff' as 'owner' | 'staff',
+    isActive: true,
+  })
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -102,6 +112,28 @@ export default function Admin() {
 
   const handleLogout = () => {
     adminLogout()
+  }
+
+  const handleCreateBarUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!barUserForm.barId || !barUserForm.email || !barUserForm.password || !barUserForm.displayName) return
+    try {
+      setIsSavingBarUser(true)
+      await createBarUser(barUserForm)
+      setBarUserForm({
+        barId: '',
+        email: '',
+        password: '',
+        displayName: '',
+        role: 'staff',
+        isActive: true,
+      })
+      alert('酒吧帳號已建立')
+    } catch (err: any) {
+      alert(err?.response?.data?.error || '建立酒吧帳號失敗')
+    } finally {
+      setIsSavingBarUser(false)
+    }
   }
 
   // Login screen
@@ -861,6 +893,101 @@ export default function Admin() {
               </form>
             </div>
           )}
+
+          {/* Create Bar Account */}
+          <div className="glass rounded-xl p-4 space-y-3 border border-white/5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold flex items-center gap-2">
+                <UserCog className="w-5 h-5" />
+                建立酒吧帳號
+              </h3>
+              <span className="text-xs text-gray-500">登入酒吧後台用</span>
+            </div>
+            <form onSubmit={handleCreateBarUser} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="md:col-span-2">
+                <label className="block text-xs text-gray-400 mb-1">選擇酒吧</label>
+                <select
+                  value={barUserForm.barId}
+                  onChange={(e) => setBarUserForm({ ...barUserForm, barId: e.target.value })}
+                  className="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
+                  required
+                >
+                  <option value="">請選擇</option>
+                  {bars.map((bar) => (
+                    <option key={bar.id} value={bar.id}>{bar.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">顯示名稱</label>
+                <input
+                  type="text"
+                  value={barUserForm.displayName}
+                  onChange={(e) => setBarUserForm({ ...barUserForm, displayName: e.target.value })}
+                  className="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={barUserForm.email}
+                  onChange={(e) => setBarUserForm({ ...barUserForm, email: e.target.value })}
+                  className="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">密碼</label>
+                <input
+                  type="password"
+                  value={barUserForm.password}
+                  onChange={(e) => setBarUserForm({ ...barUserForm, password: e.target.value })}
+                  className="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
+                  required
+                  minLength={4}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">角色</label>
+                <select
+                  value={barUserForm.role}
+                  onChange={(e) => setBarUserForm({ ...barUserForm, role: e.target.value as 'owner' | 'staff' })}
+                  className="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
+                >
+                  <option value="owner">Owner</option>
+                  <option value="staff">Staff</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  id="bar-user-active"
+                  type="checkbox"
+                  checked={barUserForm.isActive}
+                  onChange={(e) => setBarUserForm({ ...barUserForm, isActive: e.target.checked })}
+                  className="accent-primary-500"
+                />
+                <label htmlFor="bar-user-active" className="text-sm text-gray-300">啟用</label>
+              </div>
+              <div className="md:col-span-2">
+                <button
+                  type="submit"
+                  disabled={isSavingBarUser}
+                  className="w-full bg-primary-500 text-dark-900 font-semibold py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {isSavingBarUser ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      建立中...
+                    </>
+                  ) : (
+                    '建立帳號'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
 
           {/* Bar List */}
           <div className="glass rounded-xl p-4">
