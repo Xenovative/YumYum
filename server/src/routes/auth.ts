@@ -32,9 +32,9 @@ router.post('/register', async (req, res) => {
     const userId = `user-${Date.now()}`;
 
     const result = await query(
-      `INSERT INTO users (id, email, password_hash, name, phone, membership_tier, joined_at, total_spent, total_visits)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), 0, 0)
-       RETURNING id, email, name, phone, avatar, display_name, gender, membership_tier, membership_expiry, joined_at, total_spent, total_visits`,
+      `INSERT INTO users (id, email, password_hash, name, phone, membership_tier, joined_at, total_spent, total_visits, age, height_cm, drink_capacity)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), 0, 0, NULL, NULL, NULL)
+       RETURNING id, email, name, phone, avatar, display_name, gender, age, height_cm, drink_capacity, membership_tier, membership_expiry, joined_at, total_spent, total_visits`,
       [userId, email, passwordHash, name, phone, 'free']
     );
 
@@ -53,6 +53,9 @@ router.post('/register', async (req, res) => {
         avatar: user.avatar,
         displayName: user.display_name,
         gender: user.gender,
+        age: user.age,
+        heightCm: user.height_cm,
+        drinkCapacity: user.drink_capacity,
         membershipTier: user.membership_tier,
         membershipExpiry: user.membership_expiry,
         joinedAt: user.joined_at,
@@ -74,7 +77,7 @@ router.post('/login', async (req, res) => {
     const { email, password } = loginSchema.parse(req.body);
 
     const result = await query(
-      `SELECT id, email, password_hash, name, phone, avatar, display_name, gender, 
+      `SELECT id, email, password_hash, name, phone, avatar, display_name, gender, age, height_cm, drink_capacity,
               membership_tier, membership_expiry, joined_at, total_spent, total_visits
        FROM users WHERE email = $1`,
       [email]
@@ -105,6 +108,9 @@ router.post('/login', async (req, res) => {
         avatar: user.avatar,
         displayName: user.display_name,
         gender: user.gender,
+        age: user.age,
+        heightCm: user.height_cm,
+        drinkCapacity: user.drink_capacity,
         membershipTier: user.membership_tier,
         membershipExpiry: user.membership_expiry,
         joinedAt: user.joined_at,
@@ -124,7 +130,7 @@ router.post('/login', async (req, res) => {
 router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const result = await query(
-      `SELECT id, email, name, phone, avatar, display_name, gender, 
+      `SELECT id, email, name, phone, avatar, display_name, gender, age, height_cm, drink_capacity,
               membership_tier, membership_expiry, joined_at, total_spent, total_visits
        FROM users WHERE id = $1`,
       [req.userId]
@@ -143,6 +149,9 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
       avatar: user.avatar,
       displayName: user.display_name,
       gender: user.gender,
+      age: user.age,
+      heightCm: user.height_cm,
+      drinkCapacity: user.drink_capacity,
       membershipTier: user.membership_tier,
       membershipExpiry: user.membership_expiry,
       joinedAt: user.joined_at,
@@ -157,7 +166,7 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
 
 router.put('/profile', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { name, phone, avatar, displayName, gender } = req.body;
+    const { name, phone, avatar, displayName, gender, age, heightCm, drinkCapacity } = req.body;
 
     const result = await query(
       `UPDATE users 
@@ -166,11 +175,14 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res) => {
            avatar = COALESCE($3, avatar),
            display_name = COALESCE($4, display_name),
            gender = COALESCE($5, gender),
+           age = COALESCE($6, age),
+           height_cm = COALESCE($7, height_cm),
+           drink_capacity = COALESCE($8, drink_capacity),
            updated_at = NOW()
-       WHERE id = $6
-       RETURNING id, email, name, phone, avatar, display_name, gender, 
+       WHERE id = $9
+       RETURNING id, email, name, phone, avatar, display_name, gender, age, height_cm, drink_capacity,
                  membership_tier, membership_expiry, joined_at, total_spent, total_visits`,
-      [name, phone, avatar, displayName, gender, req.userId]
+      [name, phone, avatar, displayName, gender, age, heightCm, drinkCapacity, req.userId]
     );
 
     const user = result.rows[0];
@@ -182,6 +194,9 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res) => {
       avatar: user.avatar,
       displayName: user.display_name,
       gender: user.gender,
+      age: user.age,
+      heightCm: user.height_cm,
+      drinkCapacity: user.drink_capacity,
       membershipTier: user.membership_tier,
       membershipExpiry: user.membership_expiry,
       joinedAt: user.joined_at,
