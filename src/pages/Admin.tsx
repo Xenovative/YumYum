@@ -57,6 +57,13 @@ export default function Admin() {
     }
   }, [isAdminAuthenticated, adminDataLoaded, adminDataLoading, loadAdminDashboard])
 
+  // Refresh members when opening the Members tab
+  useEffect(() => {
+    if (isAdminAuthenticated && activeTab === 'members') {
+      loadAdminDashboard()
+    }
+  }, [activeTab, isAdminAuthenticated, loadAdminDashboard])
+
   // Bar form state - must be declared before any early returns
   const [showBarForm, setShowBarForm] = useState(false)
   const [editingBar, setEditingBar] = useState<Bar | null>(null)
