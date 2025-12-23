@@ -225,17 +225,6 @@ export default function PartyDetail() {
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm text-gray-300">
               <div className="glass rounded-lg p-3">
-                <p className="text-xs text-gray-500">加入時間</p>
-                <p>{format(new Date(selectedMember.joinedAt), 'MM/dd HH:mm')}</p>
-              </div>
-              <div className="glass rounded-lg p-3">
-                <p className="text-xs text-gray-500">ID</p>
-                <p className="break-all">{selectedMember.userId}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-sm text-gray-300">
-              <div className="glass rounded-lg p-3">
                 <p className="text-xs text-gray-500">性別</p>
                 <p>{selectedMember.gender === 'female' ? '女' : selectedMember.gender === 'male' ? '男' : '未提供'}</p>
               </div>
@@ -250,22 +239,6 @@ export default function PartyDetail() {
               <div className="glass rounded-lg p-3">
                 <p className="text-xs text-gray-500">酒量</p>
                 <p>{selectedMember.drinkCapacity ?? '未提供'}</p>
-              </div>
-              <div className="glass rounded-lg p-3">
-                <p className="text-xs text-gray-500">會員等級</p>
-                <p>{selectedMember.membershipTier || '未提供'}</p>
-              </div>
-              <div className="glass rounded-lg p-3">
-                <p className="text-xs text-gray-500">總到訪</p>
-                <p>{selectedMember.totalVisits ?? '未提供'}</p>
-              </div>
-              <div className="glass rounded-lg p-3">
-                <p className="text-xs text-gray-500">總消費</p>
-                <p>{selectedMember.totalSpent !== undefined ? `$${selectedMember.totalSpent}` : '未提供'}</p>
-              </div>
-              <div className="glass rounded-lg p-3">
-                <p className="text-xs text-gray-500">會員到期</p>
-                <p>{selectedMember.membershipExpiry ? format(new Date(selectedMember.membershipExpiry), 'yyyy/MM/dd') : '未提供'}</p>
               </div>
             </div>
           </div>
