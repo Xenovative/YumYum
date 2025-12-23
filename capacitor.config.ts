@@ -6,7 +6,12 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     url: 'https://www.one-night-drink.com',
-    cleartext: true
+    cleartext: true,
+    allowNavigation: [
+      'https://www.one-night-drink.com',
+      'https://one-night-drink.com',
+      'https://*.one-night-drink.com'
+    ]
   },
   android: {
     allowMixedContent: true

@@ -174,6 +174,7 @@ interface AppState {
   getFeaturedBars: () => Bar[]
   adminLogin: (password: string) => Promise<boolean>
   adminLogout: () => void
+  refreshPublicData: () => Promise<void>
   
   // Party actions
   createParty: (party: Omit<Party, 'id' | 'createdAt' | 'currentGuests' | 'status'>) => Promise<Party>
@@ -347,6 +348,7 @@ export const useStore = create<AppState>()(
               ? [...(state.featuredBarIds || []), createdBar.id]
               : state.featuredBarIds,
           }))
+          await get().refreshPublicData()
         } catch (error) {
           console.error('Failed to add bar:', error)
           throw error
@@ -364,6 +366,7 @@ export const useStore = create<AppState>()(
               ? Array.from(new Set([...(state.featuredBarIds || []), id]))
               : (state.featuredBarIds || []).filter((barId) => barId !== id),
           }))
+          await get().refreshPublicData()
         } catch (error) {
           console.error('Failed to update bar:', error)
           throw error
@@ -379,6 +382,7 @@ export const useStore = create<AppState>()(
               (barId) => barId !== id
             ),
           }))
+          await get().refreshPublicData()
         } catch (error) {
           console.error('Failed to remove bar:', error)
           throw error
@@ -400,6 +404,7 @@ export const useStore = create<AppState>()(
               ),
             }
           })
+          await get().refreshPublicData()
         } catch (error) {
           console.error('Failed to toggle featured bar:', error)
         }
@@ -446,6 +451,24 @@ export const useStore = create<AppState>()(
           adminDataLoading: false,
           adminDataError: undefined,
         })
+      },
+
+      refreshPublicData: async () => {
+        try {
+          const [bars, openParties] = await Promise.all([
+            barsAPI.getAll(),
+            partiesAPI.getAll('open')
+          ])
+          set({
+            bars,
+            featuredBarIds: bars
+              .filter((bar: Bar) => bar.isFeatured)
+              .map((bar: Bar) => bar.id),
+            parties: openParties,
+          })
+        } catch (error) {
+          console.error('Failed to refresh public data:', error)
+        }
       },
 
       loadAdminDashboard: async () => {

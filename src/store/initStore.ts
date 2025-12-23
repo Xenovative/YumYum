@@ -1,15 +1,11 @@
 import { useStore } from './useStore';
-import { barsAPI, authAPI, passesAPI, partiesAPI } from '../services/api';
+import { authAPI, passesAPI, partiesAPI } from '../services/api';
 
 // Initialize store with data from API
 export async function initializeStore() {
   try {
-    // Load bars from API
-    const bars = await barsAPI.getAll();
-    useStore.setState({ 
-      bars,
-      featuredBarIds: bars.filter((bar: any) => bar.isFeatured).map((bar: any) => bar.id)
-    });
+    // Always refresh public data (bars + open parties) on every load
+    await useStore.getState().refreshPublicData?.();
 
     // Check if user is logged in (has auth token)
     const token = localStorage.getItem('auth_token');
@@ -43,6 +39,9 @@ export async function initializeStore() {
         });
       }
     }
+
+    // Always refresh public data (bars + open parties) so all devices stay in sync
+    await useStore.getState().refreshPublicData?.();
   } catch (error) {
     console.error('Failed to initialize store:', error);
   }
