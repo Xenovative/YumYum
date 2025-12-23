@@ -487,6 +487,9 @@ export default function Admin() {
                     <div className="text-right">
                       <p className="text-primary-500 font-medium">HK${pass.totalPrice}</p>
                       <p className="text-xs text-gray-500">{format(new Date(pass.purchaseTime), 'MM/dd HH:mm')}</p>
+                      {!pass.isActive && (
+                        <p className="text-[10px] text-red-400">已撤銷</p>
+                      )}
                     </div>
                     {isAdminAuthenticated && (
                       <button
