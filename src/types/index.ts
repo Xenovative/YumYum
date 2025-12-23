@@ -57,6 +57,13 @@ export interface PartyMember {
   displayName?: string
   avatar?: string
   gender: Gender
+  age?: number
+  heightCm?: number
+  drinkCapacity?: string
+  membershipTier?: MembershipTier
+  membershipExpiry?: Date
+  totalSpent?: number
+  totalVisits?: number
   joinedAt: Date
 }
 
@@ -66,6 +73,14 @@ export interface Party {
   hostName: string
   hostDisplayName?: string
   hostAvatar?: string
+  hostGender?: Gender
+  hostAge?: number
+  hostHeightCm?: number
+  hostDrinkCapacity?: string
+  hostMembershipTier?: MembershipTier
+  hostMembershipExpiry?: Date
+  hostTotalSpent?: number
+  hostTotalVisits?: number
   passId: string // The free drinks pass being used
   barId: string
   barName: string

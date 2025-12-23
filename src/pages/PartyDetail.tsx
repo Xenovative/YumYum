@@ -34,7 +34,14 @@ export default function PartyDetail() {
     name: party.hostName,
     displayName: party.hostDisplayName,
     avatar: party.hostAvatar,
-    gender: undefined as string | undefined,
+    gender: party.hostGender as string | undefined,
+    age: (party as any).hostAge as number | undefined,
+    heightCm: (party as any).hostHeightCm as number | undefined,
+    drinkCapacity: (party as any).hostDrinkCapacity as number | undefined,
+    membershipTier: (party as any).hostMembershipTier as string | undefined,
+    membershipExpiry: (party as any).hostMembershipExpiry as string | undefined,
+    totalSpent: (party as any).hostTotalSpent as number | undefined,
+    totalVisits: (party as any).hostTotalVisits as number | undefined,
     joinedAt: party.createdAt || party.partyTime || new Date().toISOString(),
   }
 
@@ -224,6 +231,41 @@ export default function PartyDetail() {
               <div className="glass rounded-lg p-3">
                 <p className="text-xs text-gray-500">ID</p>
                 <p className="break-all">{selectedMember.userId}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-sm text-gray-300">
+              <div className="glass rounded-lg p-3">
+                <p className="text-xs text-gray-500">性別</p>
+                <p>{selectedMember.gender === 'female' ? '女' : selectedMember.gender === 'male' ? '男' : '未提供'}</p>
+              </div>
+              <div className="glass rounded-lg p-3">
+                <p className="text-xs text-gray-500">年齡</p>
+                <p>{selectedMember.age ?? '未提供'}</p>
+              </div>
+              <div className="glass rounded-lg p-3">
+                <p className="text-xs text-gray-500">身高</p>
+                <p>{selectedMember.heightCm ? `${selectedMember.heightCm} cm` : '未提供'}</p>
+              </div>
+              <div className="glass rounded-lg p-3">
+                <p className="text-xs text-gray-500">酒量</p>
+                <p>{selectedMember.drinkCapacity ?? '未提供'}</p>
+              </div>
+              <div className="glass rounded-lg p-3">
+                <p className="text-xs text-gray-500">會員等級</p>
+                <p>{selectedMember.membershipTier || '未提供'}</p>
+              </div>
+              <div className="glass rounded-lg p-3">
+                <p className="text-xs text-gray-500">總到訪</p>
+                <p>{selectedMember.totalVisits ?? '未提供'}</p>
+              </div>
+              <div className="glass rounded-lg p-3">
+                <p className="text-xs text-gray-500">總消費</p>
+                <p>{selectedMember.totalSpent !== undefined ? `$${selectedMember.totalSpent}` : '未提供'}</p>
+              </div>
+              <div className="glass rounded-lg p-3">
+                <p className="text-xs text-gray-500">會員到期</p>
+                <p>{selectedMember.membershipExpiry ? format(new Date(selectedMember.membershipExpiry), 'yyyy/MM/dd') : '未提供'}</p>
               </div>
             </div>
           </div>

@@ -22,8 +22,13 @@ router.get('/', async (req, res) => {
     const result = await query(
       `SELECT p.id, p.host_id, p.host_name, p.host_display_name, p.host_avatar,
               p.pass_id, p.bar_id, p.bar_name, p.title, p.description,
-              p.max_female_guests, p.party_time, p.status, p.created_at
+              p.max_female_guests, p.party_time, p.status, p.created_at,
+              u.gender as host_gender, u.age as host_age, u.height_cm as host_height_cm,
+              u.drink_capacity as host_drink_capacity, u.membership_tier as host_membership_tier,
+              u.membership_expiry as host_membership_expiry, u.total_spent as host_total_spent,
+              u.total_visits as host_total_visits
        FROM parties p
+       LEFT JOIN users u ON u.id = p.host_id
        WHERE p.status = $1
        ORDER BY p.party_time ASC`,
       [status]
@@ -34,10 +39,13 @@ router.get('/', async (req, res) => {
     
     if (partyIds.length > 0) {
       membersResult = await query(
-        `SELECT party_id, user_id, name, display_name, avatar, gender, joined_at
-         FROM party_members
-         WHERE party_id = ANY($1)
-         ORDER BY joined_at ASC`,
+        `SELECT pm.party_id, pm.user_id, u.name, u.display_name, u.avatar, u.gender, pm.joined_at,
+                u.age, u.height_cm, u.drink_capacity, u.membership_tier, u.membership_expiry,
+                u.total_spent, u.total_visits
+         FROM party_members pm
+         JOIN users u ON u.id = pm.user_id
+         WHERE pm.party_id = ANY($1)
+         ORDER BY pm.joined_at ASC`,
         [partyIds]
       );
     }
@@ -50,6 +58,13 @@ router.get('/', async (req, res) => {
         displayName: member.display_name,
         avatar: member.avatar,
         gender: member.gender,
+        age: member.age,
+        heightCm: member.height_cm,
+        drinkCapacity: member.drink_capacity,
+        membershipTier: member.membership_tier,
+        membershipExpiry: member.membership_expiry,
+        totalSpent: member.total_spent,
+        totalVisits: member.total_visits,
         joinedAt: member.joined_at
       });
       return acc;
@@ -61,6 +76,14 @@ router.get('/', async (req, res) => {
       hostName: row.host_name,
       hostDisplayName: row.host_display_name,
       hostAvatar: row.host_avatar,
+      hostGender: row.host_gender,
+      hostAge: row.host_age,
+      hostHeightCm: row.host_height_cm,
+      hostDrinkCapacity: row.host_drink_capacity,
+      hostMembershipTier: row.host_membership_tier,
+      hostMembershipExpiry: row.host_membership_expiry,
+      hostTotalSpent: row.host_total_spent,
+      hostTotalVisits: row.host_total_visits,
       passId: row.pass_id,
       barId: row.bar_id,
       barName: row.bar_name,
@@ -222,20 +245,39 @@ router.get('/:id', async (req, res) => {
     }
 
     const membersResult = await query(
-      `SELECT party_id, user_id, name, display_name, avatar, gender, joined_at
-       FROM party_members
-       WHERE party_id = $1
-       ORDER BY joined_at ASC`,
+      `SELECT pm.party_id, pm.user_id, u.name, u.display_name, u.avatar, u.gender, pm.joined_at,
+              u.age, u.height_cm, u.drink_capacity, u.membership_tier, u.membership_expiry,
+              u.total_spent, u.total_visits
+       FROM party_members pm
+       JOIN users u ON u.id = pm.user_id
+       WHERE pm.party_id = $1
+       ORDER BY pm.joined_at ASC`,
       [req.params.id]
     );
 
+    const hostResult = await query(
+      `SELECT id, name, display_name, avatar, gender, age, height_cm, drink_capacity,
+              membership_tier, membership_expiry, total_spent, total_visits
+       FROM users WHERE id = $1`,
+      [partyResult.rows[0].host_id]
+    );
+
     const row = partyResult.rows[0];
+    const hostProfile = hostResult.rows[0];
     const party = {
       id: row.id,
       hostId: row.host_id,
       hostName: row.host_name,
       hostDisplayName: row.host_display_name,
       hostAvatar: row.host_avatar,
+      hostGender: hostProfile?.gender,
+      hostAge: hostProfile?.age,
+      hostHeightCm: hostProfile?.height_cm,
+      hostDrinkCapacity: hostProfile?.drink_capacity,
+      hostMembershipTier: hostProfile?.membership_tier,
+      hostMembershipExpiry: hostProfile?.membership_expiry,
+      hostTotalSpent: hostProfile?.total_spent,
+      hostTotalVisits: hostProfile?.total_visits,
       passId: row.pass_id,
       barId: row.bar_id,
       barName: row.bar_name,
@@ -250,6 +292,13 @@ router.get('/:id', async (req, res) => {
         displayName: member.display_name,
         avatar: member.avatar,
         gender: member.gender,
+        age: member.age,
+        heightCm: member.height_cm,
+        drinkCapacity: member.drink_capacity,
+        membershipTier: member.membership_tier,
+        membershipExpiry: member.membership_expiry,
+        totalSpent: member.total_spent,
+        totalVisits: member.total_visits,
         joinedAt: member.joined_at
       })),
       createdAt: row.created_at
