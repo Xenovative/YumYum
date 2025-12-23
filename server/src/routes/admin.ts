@@ -131,6 +131,50 @@ router.get('/passes', authenticateAdmin, async (req, res) => {
   }
 });
 
+router.post('/passes/:id/revoke', authenticateAdmin, async (req, res) => {
+  try {
+    const passId = req.params.id;
+    const result = await query(
+      `UPDATE passes
+       SET is_active = false, updated_at = NOW()
+       WHERE id = $1
+       RETURNING id`,
+      [passId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Pass not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Revoke pass error:', error);
+    res.status(500).json({ error: 'Failed to revoke pass' });
+  }
+});
+
+router.delete('/passes/:id/revoke', authenticateAdmin, async (req, res) => {
+  try {
+    const passId = req.params.id;
+    const result = await query(
+      `UPDATE passes
+       SET is_active = false, updated_at = NOW()
+       WHERE id = $1
+       RETURNING id`,
+      [passId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Pass not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Revoke pass (DELETE) error:', error);
+    res.status(500).json({ error: 'Failed to revoke pass' });
+  }
+});
+
 router.get('/payment-settings', authenticateAdmin, async (req, res) => {
   try {
     const result = await query(
