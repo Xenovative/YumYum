@@ -232,9 +232,16 @@ export const useStore = create<AppState>()(
       register: async (email, password, name, phone) => {
         try {
           const response = await authAPI.register(email, password, name, phone)
+          const [passes, hostedParties, joinedParties] = await Promise.all([
+            passesAPI.getMyPasses(),
+            partiesAPI.getMyHosted(),
+            partiesAPI.getMyJoined()
+          ])
           set({ 
             isLoggedIn: true, 
-            user: response.user
+            user: response.user,
+            activePasses: passes,
+            parties: [...hostedParties, ...joinedParties]
           })
           return true
         } catch (error) {
@@ -246,9 +253,16 @@ export const useStore = create<AppState>()(
       login: async (email, password) => {
         try {
           const response = await authAPI.login(email, password)
+          const [passes, hostedParties, joinedParties] = await Promise.all([
+            passesAPI.getMyPasses(),
+            partiesAPI.getMyHosted(),
+            partiesAPI.getMyJoined()
+          ])
           set({ 
             isLoggedIn: true, 
-            user: response.user
+            user: response.user,
+            activePasses: passes,
+            parties: [...hostedParties, ...joinedParties]
           })
           return true
         } catch (error) {

@@ -220,6 +220,11 @@ export const adminAPI = {
     return data;
   },
 
+  revokePass: async (id: string) => {
+    const { data } = await api.post(`/admin/passes/${id}/revoke`, undefined, getAdminHeaders());
+    return data;
+  },
+
   updatePaymentSettings: async (settings: any) => {
     const { data } = await api.put('/admin/payment-settings', settings, getAdminHeaders());
     return data;

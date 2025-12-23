@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, QrCode, CheckCircle, XCircle, Clock, Store, CreditCard, Plus, Pencil, Trash2, X, Lock, LogOut, PartyPopper, UserCog, DollarSign, Crown, Ban, Star, Settings, Loader2, UserCircle2 } from 'lucide-react'
 import { useStore } from '../store/useStore'
+import { adminAPI } from '../services/api'
 import { districts } from '../data/districts'
 import { Bar } from '../types'
 import { format } from 'date-fns'
@@ -487,6 +488,24 @@ export default function Admin() {
                       <p className="text-primary-500 font-medium">HK${pass.totalPrice}</p>
                       <p className="text-xs text-gray-500">{format(new Date(pass.purchaseTime), 'MM/dd HH:mm')}</p>
                     </div>
+                    {isAdminAuthenticated && (
+                      <button
+                        onClick={async () => {
+                          if (confirm('確定要撤銷此通行證嗎？')) {
+                            try {
+                              await adminAPI.revokePass(pass.id)
+                              await loadAdminDashboard()
+                            } catch (err) {
+                              console.error('Revoke pass failed', err)
+                              alert('撤銷失敗，請重試')
+                            }
+                          }
+                        }}
+                        className="ml-3 text-xs text-red-400 hover:text-red-300"
+                      >
+                        撤銷
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

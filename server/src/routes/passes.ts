@@ -130,6 +130,16 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
        data.transactionId, data.paymentMethod]
     );
 
+    // Update user's totals
+    await query(
+      `UPDATE users
+       SET total_spent = COALESCE(total_spent, 0) + $1,
+           total_visits = COALESCE(total_visits, 0) + $2,
+           updated_at = NOW()
+       WHERE id = $3`,
+      [data.totalPrice, data.personCount, req.userId]
+    );
+
     const pass = result.rows[0];
     res.json({
       id: pass.id,
