@@ -14,6 +14,8 @@ import Parties from './pages/Parties'
 import CreateParty from './pages/CreateParty'
 import PartyDetail from './pages/PartyDetail'
 import Admin from './pages/Admin'
+import BarPortalLogin from './pages/BarPortalLogin'
+import BarPortal from './pages/BarPortal'
 
 export default function App() {
   return (
@@ -33,6 +35,8 @@ export default function App() {
         <Route path="create-party" element={<CreateParty />} />
         <Route path="party/:partyId" element={<PartyDetail />} />
         <Route path="admin" element={<Admin />} />
+        <Route path="bar-portal/login" element={<BarPortalLogin />} />
+        <Route path="bar-portal" element={<BarPortal />} />
         {/* Placeholder routes */}
         <Route path="history" element={<ComingSoon title="購買記錄" />} />
         <Route path="help" element={<ComingSoon title="使用說明" />} />

@@ -1,8 +1,9 @@
 import axios from 'axios';
-import { User, Bar } from '../types';
+import { User, Bar, BarUser } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 export const ADMIN_TOKEN_KEY = 'admin_token';
+export const BAR_TOKEN_KEY = 'bar_token';
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
@@ -227,6 +228,59 @@ export const adminAPI = {
 
   updatePaymentSettings: async (settings: any) => {
     const { data } = await api.put('/admin/payment-settings', settings, getAdminHeaders());
+    return data;
+  },
+};
+
+// Bar Portal API (separate token)
+const barApi = axios.create({
+  baseURL: `${API_URL}/api/bar-portal`,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+barApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem(BAR_TOKEN_KEY);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const barPortalAPI = {
+  login: async (email: string, password: string) => {
+    const { data } = await barApi.post('/auth/login', { email, password });
+    if (data.token) {
+      localStorage.setItem(BAR_TOKEN_KEY, data.token);
+    }
+    return data as { token: string; barUser: BarUser; bar: Bar };
+  },
+  logout: () => {
+    localStorage.removeItem(BAR_TOKEN_KEY);
+  },
+  me: async () => {
+    const { data } = await barApi.get('/auth/me');
+    return data as { barUser: BarUser; bar: Bar };
+  },
+  passesToday: async () => {
+    const { data } = await barApi.get('/passes/today');
+    return data;
+  },
+  verifyPass: async (payload: { qrCode?: string; passId?: string }) => {
+    const { data } = await barApi.post('/passes/verify', payload);
+    return data;
+  },
+  collectPass: async (passId: string) => {
+    const { data } = await barApi.post('/passes/collect', { passId });
+    return data;
+  },
+  paymentsHistory: async (params?: { from?: string; to?: string; status?: 'collected' | 'uncollected' }) => {
+    const { data } = await barApi.get('/payments/history', { params });
+    return data;
+  },
+  updateBar: async (updates: Partial<Bar>) => {
+    const { data } = await barApi.put('/bar', updates);
     return data;
   },
 };

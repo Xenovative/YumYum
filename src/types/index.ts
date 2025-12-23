@@ -50,6 +50,16 @@ export interface ActivePass {
 export type MembershipTier = 'free' | 'premium' | 'vip'
 export type Gender = 'male' | 'female' | 'other' | 'prefer_not_to_say'
 export type PartyStatus = 'open' | 'full' | 'started' | 'ended' | 'cancelled'
+export type BarUserRole = 'manager' | 'staff'
+
+export interface BarUser {
+  id: string
+  barId: string
+  email: string
+  displayName?: string
+  role: BarUserRole
+  isActive?: boolean
+}
 
 export interface PartyMember {
   userId: string

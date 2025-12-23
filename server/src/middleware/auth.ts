@@ -6,6 +6,11 @@ export interface AuthRequest extends Request {
   userEmail?: string;
 }
 
+export interface BarAuthRequest extends Request {
+  barUserId?: string;
+  barId?: string;
+}
+
 export function authenticateToken(req: AuthRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -40,5 +45,23 @@ export function authenticateAdmin(req: Request, res: Response, next: NextFunctio
     next();
   } catch (error) {
     return res.status(403).json({ error: 'Invalid or expired admin token' });
+  }
+}
+
+export function authenticateBarUser(req: BarAuthRequest, res: Response, next: NextFunction) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Bar token required' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.BAR_JWT_SECRET!) as { barUserId: string; barId: string };
+    req.barUserId = decoded.barUserId;
+    req.barId = decoded.barId;
+    next();
+  } catch (error) {
+    return res.status(403).json({ error: 'Invalid or expired bar token' });
   }
 }

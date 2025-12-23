@@ -1,12 +1,13 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import { ActivePass, Bar, PendingReservation, User, MembershipTier, Party } from '../types'
+import { ActivePass, Bar, PendingReservation, User, MembershipTier, Party, BarUser } from '../types'
 import { PaymentMethod } from '../services/paymentGateway'
-import { authAPI, passesAPI, partiesAPI, adminAPI, barsAPI, ADMIN_TOKEN_KEY } from '../services/api'
+import { authAPI, passesAPI, partiesAPI, adminAPI, barsAPI, ADMIN_TOKEN_KEY, barPortalAPI, BAR_TOKEN_KEY } from '../services/api'
 
 const STORAGE_KEY = 'onenightdrink-storage'
 const LEGACY_STORAGE_KEY = 'yumyum-storage'
 const hasAdminToken = typeof window !== 'undefined' ? !!localStorage.getItem(ADMIN_TOKEN_KEY) : false
+const hasBarToken = typeof window !== 'undefined' ? !!localStorage.getItem(BAR_TOKEN_KEY) : false
 
 type RawPaymentSettings = {
   platformFeePercentage?: number
@@ -125,7 +126,13 @@ interface AppState {
   // User state
   isLoggedIn: boolean
   user: User | null
-  
+
+  // Bar portal state
+  isBarAuthenticated: boolean
+  barUser: BarUser | null
+  barProfile: Bar | null
+  barPassesToday: any[]
+
   // All registered members (for admin)
   members: User[]
   
@@ -174,8 +181,18 @@ interface AppState {
   getFeaturedBars: () => Bar[]
   adminLogin: (password: string) => Promise<boolean>
   adminLogout: () => void
+
+  // Bar portal actions
+  setBarSession: (token: string, barUser: BarUser, bar: Bar) => void
+  barLogout: () => void
+  loadBarProfile: () => Promise<void>
+  loadBarPassesToday: () => Promise<void>
+  verifyBarPass: (payload: { qrCode?: string; passId?: string }) => Promise<any>
+  collectBarPass: (passId: string) => Promise<any>
+  updateBarProfile: (updates: Partial<Bar>) => Promise<Bar>
+
   refreshPublicData: () => Promise<void>
-  
+
   // Party actions
   createParty: (party: Omit<Party, 'id' | 'createdAt' | 'currentGuests' | 'status'>) => Promise<Party>
   joinParty: (partyId: string) => Promise<boolean>
@@ -199,6 +216,10 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       isLoggedIn: false,
       user: null,
+      isBarAuthenticated: hasBarToken,
+      barUser: null,
+      barProfile: null,
+      barPassesToday: [],
       members: [],
       pendingReservation: null,
       activePasses: [],
@@ -227,6 +248,68 @@ export const useStore = create<AppState>()(
         fpsQrCode: null,
         alipayQrCode: null,
         wechatQrCode: null,
+      },
+
+      // Bar portal actions
+      setBarSession: (token, barUser, bar) => {
+        localStorage.setItem(BAR_TOKEN_KEY, token)
+        set({
+          isBarAuthenticated: true,
+          barUser,
+          barProfile: bar,
+        })
+      },
+      barLogout: () => {
+        barPortalAPI.logout()
+        set({
+          isBarAuthenticated: false,
+          barUser: null,
+          barProfile: null,
+          barPassesToday: [],
+        })
+      },
+      loadBarProfile: async () => {
+        const state = get()
+        if (!state.isBarAuthenticated) return
+        try {
+          const data = await barPortalAPI.me()
+          set({
+            barUser: data.barUser,
+            barProfile: data.bar,
+          })
+        } catch (error) {
+          console.error('Failed to load bar profile:', error)
+          get().barLogout()
+        }
+      },
+      loadBarPassesToday: async () => {
+        const state = get()
+        if (!state.isBarAuthenticated) return
+        try {
+          const passes = await barPortalAPI.passesToday()
+          set({ barPassesToday: passes })
+        } catch (error) {
+          console.error('Failed to load bar passes:', error)
+        }
+      },
+      verifyBarPass: async (payload) => {
+        const state = get()
+        if (!state.isBarAuthenticated) throw new Error('Bar auth required')
+        return barPortalAPI.verifyPass(payload)
+      },
+      collectBarPass: async (passId) => {
+        const state = get()
+        if (!state.isBarAuthenticated) throw new Error('Bar auth required')
+        const updated = await barPortalAPI.collectPass(passId)
+        set((s) => ({
+          barPassesToday: s.barPassesToday.map((p) => (p.id === passId ? updated : p)),
+        }))
+        return updated
+      },
+      updateBarProfile: async (updates) => {
+        const result = await barPortalAPI.updateBar(updates)
+        set({ barProfile: result.bar })
+        return result.bar
       },
 
       register: async (email, password, name, phone) => {
@@ -359,7 +442,7 @@ export const useStore = create<AppState>()(
         }
       }),
 
-      addBar: async (bar) => {
+      addBar: async (bar: Omit<Bar, 'id' | 'isFeatured'>) => {
         try {
           const createdBar = await barsAPI.create({
             name: bar.name,

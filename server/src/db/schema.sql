@@ -32,6 +32,19 @@ CREATE TABLE IF NOT EXISTS bars (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Bar users table (separate from app users/admin)
+CREATE TABLE IF NOT EXISTS bar_users (
+  id VARCHAR(255) PRIMARY KEY,
+  bar_id VARCHAR(255) NOT NULL REFERENCES bars(id) ON DELETE CASCADE,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  display_name VARCHAR(255),
+  role VARCHAR(50) DEFAULT 'staff',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Active passes table
 CREATE TABLE IF NOT EXISTS passes (
   id VARCHAR(255) PRIMARY KEY,
@@ -46,6 +59,8 @@ CREATE TABLE IF NOT EXISTS passes (
   expiry_time TIMESTAMP NOT NULL,
   qr_code TEXT NOT NULL,
   is_active BOOLEAN DEFAULT true,
+  collected_at TIMESTAMP,
+  collected_by VARCHAR(255),
   transaction_id VARCHAR(255),
   payment_method VARCHAR(50),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

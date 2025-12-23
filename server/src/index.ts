@@ -6,6 +6,7 @@ import barsRoutes from './routes/bars.js';
 import passesRoutes from './routes/passes.js';
 import partiesRoutes from './routes/parties.js';
 import adminRoutes from './routes/admin.js';
+import barPortalRoutes from './routes/barPortal';
 
 dotenv.config();
 
@@ -29,6 +30,7 @@ app.use('/api/bars', barsRoutes);
 app.use('/api/passes', passesRoutes);
 app.use('/api/parties', partiesRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/bar-portal', barPortalRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Error:', err);
