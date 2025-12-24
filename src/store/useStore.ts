@@ -632,6 +632,7 @@ export const useStore = create<AppState>()(
           set({
             adminDataLoading: false,
             adminDataError: error?.message || 'Failed to load admin data',
+            adminDataLoaded: true, // stop retry loop on failure
           })
         }
       },
