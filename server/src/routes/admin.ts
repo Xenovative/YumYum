@@ -308,11 +308,12 @@ router.post('/bar-users', authenticateAdmin, async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const barUserId = `baruser-${Date.now()}`;
     const insert = await query(
-      `INSERT INTO bar_users (bar_id, email, password_hash, display_name, role, is_active)
-       VALUES ($1, $2, $3, $4, $5, COALESCE($6, true))
+      `INSERT INTO bar_users (id, bar_id, email, password_hash, display_name, role, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, true))
        RETURNING id, bar_id, email, display_name, role, is_active, created_at`,
-      [barId, email, passwordHash, displayName, role, isActive]
+      [barUserId, barId, email, passwordHash, displayName, role, isActive]
     );
 
     const row = insert.rows[0];
