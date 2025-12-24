@@ -1,18 +1,6 @@
 import { Link } from 'react-router-dom'
-import { User as UserIcon, LogOut, History, HelpCircle, Settings, ChevronRight, Crown, Edit2 } from 'lucide-react'
+import { User as UserIcon, LogOut, History, HelpCircle, Settings, ChevronRight, Crown, Edit3 } from 'lucide-react'
 import { useStore } from '../store/useStore'
-
-const tierLabels = {
-  free: '免費會員',
-  premium: '高級會員',
-  vip: 'VIP會員'
-}
-
-const tierColors = {
-  free: 'text-gray-400',
-  premium: 'text-primary-500',
-  vip: 'text-yellow-500'
-}
 
 const genderLabels = {
   male: '男',
@@ -67,8 +55,8 @@ export default function Profile() {
     <div className="space-y-6">
       {/* Profile Header */}
       <div className="glass rounded-2xl p-6">
-        <div className="flex items-center gap-4">
-          <div className="relative">
+        <div className="flex items-start gap-4">
+          <div className="relative shrink-0">
             {user.avatar ? (
               <img 
                 src={user.avatar} 
@@ -88,6 +76,14 @@ export default function Profile() {
               </div>
             )}
           </div>
+          {user.tagline && (
+            <div className="relative">
+              <div className="bg-white/10 text-gray-100 text-sm px-3 py-2 rounded-2xl shadow-lg">
+                {user.tagline}
+              </div>
+              <div className="absolute -left-1 bottom-1 w-3 h-3 bg-white/10 rotate-45 rounded-sm"></div>
+            </div>
+          )}
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-semibold">{user.displayName || user.name}</h2>
@@ -98,13 +94,24 @@ export default function Profile() {
               )}
             </div>
             <p className="text-gray-400 text-sm">{user.email}</p>
-            <p className={`text-sm ${tierColors[user.membershipTier]}`}>
-              {tierLabels[user.membershipTier]}
-            </p>
+            <p className="text-gray-500 text-xs mt-1">會員等級：{membershipLabels[user.membershipTier]}</p>
           </div>
-          <Link to="/edit-profile" className="p-2 rounded-full glass hover:bg-white/10">
-            <Edit2 className="w-5 h-5 text-gray-400" />
-          </Link>
+          <div className="text-right">
+            <Link 
+              to="/edit-profile" 
+              className="text-primary-400 text-sm font-medium hover:underline flex items-center gap-1 justify-end"
+            >
+              <Edit3 className="w-4 h-4" />
+              編輯
+            </Link>
+            <Link 
+              to="/settings" 
+              className="text-gray-400 text-sm hover:text-white flex items-center gap-1 justify-end mt-1"
+            >
+              <Settings className="w-4 h-4" />
+              設定
+            </Link>
+          </div>
         </div>
       </div>
 

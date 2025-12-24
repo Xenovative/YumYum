@@ -130,7 +130,7 @@ router.post('/login', async (req, res) => {
 router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const result = await query(
-      `SELECT id, email, name, phone, avatar, display_name, gender, age, height_cm, drink_capacity,
+      `SELECT id, email, name, phone, avatar, tagline, display_name, gender, age, height_cm, drink_capacity,
               membership_tier, membership_expiry, joined_at, total_spent, total_visits
        FROM users WHERE id = $1`,
       [req.userId]
@@ -147,6 +147,7 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
       name: user.name,
       phone: user.phone,
       avatar: user.avatar,
+      tagline: user.tagline,
       displayName: user.display_name,
       gender: user.gender,
       age: user.age,
@@ -168,7 +169,7 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
 router.get('/profile', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const result = await query(
-      `SELECT id, email, name, phone, avatar, display_name, gender, age, height_cm, drink_capacity,
+      `SELECT id, email, name, phone, avatar, tagline, display_name, gender, age, height_cm, drink_capacity,
               membership_tier, membership_expiry, joined_at, total_spent, total_visits
        FROM users WHERE id = $1`,
       [req.userId]
@@ -185,6 +186,7 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res) => {
       name: user.name,
       phone: user.phone,
       avatar: user.avatar,
+      tagline: user.tagline,
       displayName: user.display_name,
       gender: user.gender,
       age: user.age,
@@ -204,23 +206,24 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res) => {
 
 router.put('/profile', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { name, phone, avatar, displayName, gender, age, heightCm, drinkCapacity } = req.body;
+    const { name, phone, avatar, tagline, displayName, gender, age, heightCm, drinkCapacity } = req.body;
 
     const result = await query(
       `UPDATE users 
        SET name = COALESCE($1, name),
            phone = COALESCE($2, phone),
            avatar = COALESCE($3, avatar),
-           display_name = COALESCE($4, display_name),
-           gender = COALESCE($5, gender),
-           age = COALESCE($6, age),
-           height_cm = COALESCE($7, height_cm),
-           drink_capacity = COALESCE($8, drink_capacity),
+           tagline = COALESCE($4, tagline),
+           display_name = COALESCE($5, display_name),
+           gender = COALESCE($6, gender),
+           age = COALESCE($7, age),
+           height_cm = COALESCE($8, height_cm),
+           drink_capacity = COALESCE($9, drink_capacity),
            updated_at = NOW()
-       WHERE id = $9
-       RETURNING id, email, name, phone, avatar, display_name, gender, age, height_cm, drink_capacity,
+       WHERE id = $10
+       RETURNING id, email, name, phone, avatar, tagline, display_name, gender, age, height_cm, drink_capacity,
                  membership_tier, membership_expiry, joined_at, total_spent, total_visits`,
-      [name, phone, avatar, displayName, gender, age, heightCm, drinkCapacity, req.userId]
+      [name, phone, avatar, tagline, displayName, gender, age, heightCm, drinkCapacity, req.userId]
     );
 
     const user = result.rows[0];
@@ -230,6 +233,7 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res) => {
       name: user.name,
       phone: user.phone,
       avatar: user.avatar,
+      tagline: user.tagline,
       displayName: user.display_name,
       gender: user.gender,
       age: user.age,

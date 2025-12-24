@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(255) NOT NULL,
   phone VARCHAR(50) NOT NULL,
   avatar TEXT,
+  tagline TEXT,
   display_name VARCHAR(255),
   gender VARCHAR(20),
   membership_tier VARCHAR(50) DEFAULT 'free',

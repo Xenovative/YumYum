@@ -32,6 +32,7 @@ export default function EditProfile() {
   
   const [displayName, setDisplayName] = useState(user?.displayName || user?.name || '')
   const [avatar, setAvatar] = useState(user?.avatar || avatarOptions[0])
+  const [tagline, setTagline] = useState(user?.tagline || '')
   const [gender, setGender] = useState<Gender | undefined>(user?.gender)
   const [age, setAge] = useState<number | undefined>(user?.age)
   const [heightCm, setHeightCm] = useState<number | undefined>(user?.heightCm)
@@ -48,6 +49,7 @@ export default function EditProfile() {
     updateProfile({
       displayName: displayName.trim() || user.name,
       avatar,
+      tagline: tagline.trim() || undefined,
       gender,
       age: age || undefined,
       heightCm: heightCm || undefined,
@@ -147,6 +149,21 @@ export default function EditProfile() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Tagline */}
+      <div className="glass rounded-xl p-6">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm text-gray-400">一句話介紹</h2>
+          <span className="text-xs text-gray-500">{tagline.length}/80</span>
+        </div>
+        <textarea
+          value={tagline}
+          onChange={(e) => setTagline(e.target.value.slice(0, 80))}
+          className="w-full bg-dark-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-primary-500 text-sm min-h-[80px]"
+          placeholder="例：今晚想喝Gin Tonic，歡迎一起小酌"
+          maxLength={80}
+        />
       </div>
 
       {/* Age / Height */}

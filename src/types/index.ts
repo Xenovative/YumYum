@@ -113,6 +113,7 @@ export interface User {
   phone: string
   name: string
   displayName?: string
+  tagline?: string
   avatar?: string
   gender?: Gender
   age?: number
