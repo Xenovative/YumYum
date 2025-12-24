@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Camera, Check } from 'lucide-react'
+import { ArrowLeft, Camera, Check, UploadCloud } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { Gender } from '../types'
 
@@ -37,6 +37,7 @@ export default function EditProfile() {
   const [heightCm, setHeightCm] = useState<number | undefined>(user?.heightCm)
   const [drinkCapacity, setDrinkCapacity] = useState<string>(user?.drinkCapacity || '')
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
+  const [uploadError, setUploadError] = useState<string>('')
 
   if (!isLoggedIn || !user) {
     navigate('/login')
@@ -53,6 +54,25 @@ export default function EditProfile() {
       drinkCapacity: drinkCapacity.trim() || undefined,
     })
     navigate('/profile')
+  }
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    // 2MB limit
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError('圖片需小於 2MB')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      setAvatar(result)
+      setShowAvatarPicker(false)
+      setUploadError('')
+    }
+    reader.onerror = () => setUploadError('上傳失敗，請重試')
+    reader.readAsDataURL(file)
   }
 
   return (
@@ -91,6 +111,16 @@ export default function EditProfile() {
             </div>
           </button>
           <p className="text-sm text-gray-400 mt-2">點擊更換頭像</p>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          <label className="block text-xs text-gray-400">上傳自訂頭像 (JPEG/PNG &lt; 2MB)</label>
+          <label className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-gray-700 hover:border-primary-500 cursor-pointer text-sm text-gray-300">
+            <UploadCloud className="w-4 h-4" />
+            選擇圖片
+            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+          </label>
+          {uploadError && <p className="text-xs text-red-400">{uploadError}</p>}
         </div>
 
         {showAvatarPicker && (
