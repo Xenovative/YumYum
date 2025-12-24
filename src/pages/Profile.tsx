@@ -9,6 +9,12 @@ const genderLabels = {
   prefer_not_to_say: '不透露'
 }
 
+const membershipLabels = {
+  free: '免費會員',
+  premium: '高級會員',
+  vip: 'VIP會員'
+}
+
 export default function Profile() {
   const { isLoggedIn, user, logout, activePasses, getActivePass } = useStore()
   const activePass = getActivePass()
