@@ -37,6 +37,7 @@ export default function BarPortal() {
     districtId: '',
     address: '',
     image: '',
+    pricePerPerson: 250,
     rating: 0,
     drinks: '',
   })
@@ -60,6 +61,7 @@ export default function BarPortal() {
         districtId: (barProfile as any).districtId || '',
         address: (barProfile as any).address || '',
         image: (barProfile as any).image || '',
+        pricePerPerson: (barProfile as any).pricePerPerson || 250,
         rating: (barProfile as any).rating || 0,
         drinks: Array.isArray((barProfile as any).drinks) ? (barProfile as any).drinks.join(', ') : '',
       })
@@ -144,6 +146,7 @@ export default function BarPortal() {
         districtId: barEdit.districtId,
         address: barEdit.address,
         image: barEdit.image,
+        pricePerPerson: Number(barEdit.pricePerPerson) || 0,
         rating: Number(barEdit.rating) || 0,
         drinks: barEdit.drinks.split(',').map((d) => d.trim()).filter(Boolean),
       }
@@ -425,6 +428,17 @@ export default function BarPortal() {
             <input
               value={barEdit.image}
               onChange={(e) => setBarEdit((s) => ({ ...s, image: e.target.value }))}
+              className="w-full bg-dark-800 border border-gray-700 rounded px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="text-gray-400 text-xs">每人價格 (HKD)</label>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={barEdit.pricePerPerson}
+              onChange={(e) => setBarEdit((s) => ({ ...s, pricePerPerson: Number(e.target.value) || 0 }))}
               className="w-full bg-dark-800 border border-gray-700 rounded px-3 py-2"
             />
           </div>
