@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
+// Invalidate all existing tokens on each server boot.
+const BOOT_TIME = Math.floor(Date.now() / 1000);
+
 export interface AuthRequest extends Request {
   userId?: string;
   userEmail?: string;
@@ -20,7 +23,10 @@ export function authenticateToken(req: AuthRequest, res: Response, next: NextFun
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; email: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; email: string; iat?: number };
+    if (decoded.iat && decoded.iat < BOOT_TIME) {
+      return res.status(403).json({ error: 'Token invalidated after server restart' });
+    }
     req.userId = decoded.userId;
     req.userEmail = decoded.email;
     next();
@@ -38,9 +44,12 @@ export function authenticateAdmin(req: Request, res: Response, next: NextFunctio
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { isAdmin: boolean };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { isAdmin: boolean; iat?: number };
     if (!decoded.isAdmin) {
       return res.status(403).json({ error: 'Admin access required' });
+    }
+    if (decoded.iat && decoded.iat < BOOT_TIME) {
+      return res.status(403).json({ error: 'Token invalidated after server restart' });
     }
     next();
   } catch (error) {
@@ -57,7 +66,10 @@ export function authenticateBarUser(req: BarAuthRequest, res: Response, next: Ne
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.BAR_JWT_SECRET!) as { barUserId: string; barId: string };
+    const decoded = jwt.verify(token, process.env.BAR_JWT_SECRET!) as { barUserId: string; barId: string; iat?: number };
+    if (decoded.iat && decoded.iat < BOOT_TIME) {
+      return res.status(403).json({ error: 'Token invalidated after server restart' });
+    }
     req.barUserId = decoded.barUserId;
     req.barId = decoded.barId;
     next();
