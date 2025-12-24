@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Star, MapPin, Users, Minus, Plus, CreditCard } from 'lucide-react'
 import { useStore } from '../store/useStore'
-import { PASS_PRICE_PER_PERSON, PLATFORM_FEE_PERCENTAGE } from '../types'
+import { PLATFORM_FEE_PERCENTAGE } from '../types'
 import AdBanner from '../components/AdBanner'
 
 export default function BarDetail() {
@@ -32,7 +32,8 @@ export default function BarDetail() {
     )
   }
 
-  const totalPrice = PASS_PRICE_PER_PERSON * personCount
+  const pricePerPerson = bar?.pricePerPerson ?? 250
+  const totalPrice = pricePerPerson * personCount
   const platformFee = totalPrice * PLATFORM_FEE_PERCENTAGE
   const barPayment = totalPrice - platformFee
 
@@ -252,7 +253,7 @@ export default function BarDetail() {
         <div className="border-t border-gray-700 pt-4 space-y-2">
           <div className="flex justify-between text-sm text-gray-400">
             <span>每人費用</span>
-            <span>HK${PASS_PRICE_PER_PERSON}</span>
+            <span>HK${pricePerPerson}</span>
           </div>
           <div className="flex justify-between text-sm text-gray-400">
             <span>人數</span>

@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS bars (
   district_id VARCHAR(255) NOT NULL,
   address TEXT NOT NULL,
   image TEXT NOT NULL,
+  price_per_person DECIMAL(10, 2) DEFAULT 250,
   rating DECIMAL(2, 1) DEFAULT 4.0,
   drinks TEXT[] NOT NULL,
   is_featured BOOLEAN DEFAULT false,

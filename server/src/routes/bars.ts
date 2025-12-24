@@ -11,6 +11,7 @@ const barSchema = z.object({
   districtId: z.string(),
   address: z.string(),
   image: z.string().url(),
+  pricePerPerson: z.number().positive(),
   rating: z.number().min(0).max(5),
   drinks: z.array(z.string())
 });
@@ -18,7 +19,7 @@ const barSchema = z.object({
 router.get('/', async (req, res) => {
   try {
     const result = await query(
-      `SELECT id, name, name_en, district_id, address, image, rating, drinks, is_featured
+      `SELECT id, name, name_en, district_id, address, image, price_per_person, rating, drinks, is_featured
        FROM bars 
        ORDER BY name`
     );
@@ -30,6 +31,7 @@ router.get('/', async (req, res) => {
       districtId: row.district_id,
       address: row.address,
       image: row.image,
+      pricePerPerson: parseFloat(row.price_per_person),
       rating: parseFloat(row.rating),
       drinks: row.drinks,
       isFeatured: row.is_featured
@@ -45,7 +47,7 @@ router.get('/', async (req, res) => {
 router.get('/featured', async (req, res) => {
   try {
     const result = await query(
-      `SELECT id, name, name_en, district_id, address, image, rating, drinks, is_featured
+      `SELECT id, name, name_en, district_id, address, image, price_per_person, rating, drinks, is_featured
        FROM bars 
        WHERE is_featured = true
        ORDER BY name`
@@ -58,6 +60,7 @@ router.get('/featured', async (req, res) => {
       districtId: row.district_id,
       address: row.address,
       image: row.image,
+      pricePerPerson: parseFloat(row.price_per_person),
       rating: parseFloat(row.rating),
       drinks: row.drinks,
       isFeatured: row.is_featured
@@ -73,7 +76,7 @@ router.get('/featured', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const result = await query(
-      `SELECT id, name, name_en, district_id, address, image, rating, drinks, is_featured
+      `SELECT id, name, name_en, district_id, address, image, price_per_person, rating, drinks, is_featured
        FROM bars 
        WHERE id = $1`,
       [req.params.id]
@@ -91,6 +94,7 @@ router.get('/:id', async (req, res) => {
       districtId: row.district_id,
       address: row.address,
       image: row.image,
+      pricePerPerson: parseFloat(row.price_per_person),
       rating: parseFloat(row.rating),
       drinks: row.drinks,
       isFeatured: row.is_featured
@@ -107,10 +111,10 @@ router.post('/', authenticateAdmin, async (req, res) => {
     const barId = `bar-${Date.now()}`;
 
     const result = await query(
-      `INSERT INTO bars (id, name, name_en, district_id, address, image, rating, drinks, is_featured)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false)
-       RETURNING id, name, name_en, district_id, address, image, rating, drinks, is_featured`,
-      [barId, data.name, data.nameEn, data.districtId, data.address, data.image, data.rating, data.drinks]
+      `INSERT INTO bars (id, name, name_en, district_id, address, image, price_per_person, rating, drinks, is_featured)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false)
+       RETURNING id, name, name_en, district_id, address, image, price_per_person, rating, drinks, is_featured`,
+      [barId, data.name, data.nameEn, data.districtId, data.address, data.image, data.pricePerPerson, data.rating, data.drinks]
     );
 
     const row = result.rows[0];
@@ -121,6 +125,7 @@ router.post('/', authenticateAdmin, async (req, res) => {
       districtId: row.district_id,
       address: row.address,
       image: row.image,
+      pricePerPerson: parseFloat(row.price_per_person),
       rating: parseFloat(row.rating),
       drinks: row.drinks,
       isFeatured: row.is_featured
@@ -145,12 +150,13 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
            district_id = COALESCE($3, district_id),
            address = COALESCE($4, address),
            image = COALESCE($5, image),
-           rating = COALESCE($6, rating),
-           drinks = COALESCE($7, drinks),
+           price_per_person = COALESCE($6, price_per_person),
+           rating = COALESCE($7, rating),
+           drinks = COALESCE($8, drinks),
            updated_at = NOW()
-       WHERE id = $8
-       RETURNING id, name, name_en, district_id, address, image, rating, drinks, is_featured`,
-      [data.name, data.nameEn, data.districtId, data.address, data.image, data.rating, data.drinks, req.params.id]
+       WHERE id = $9
+       RETURNING id, name, name_en, district_id, address, image, price_per_person, rating, drinks, is_featured`,
+      [data.name, data.nameEn, data.districtId, data.address, data.image, data.pricePerPerson, data.rating, data.drinks, req.params.id]
     );
 
     if (result.rows.length === 0) {
@@ -165,6 +171,7 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
       districtId: row.district_id,
       address: row.address,
       image: row.image,
+      pricePerPerson: parseFloat(row.price_per_person),
       rating: parseFloat(row.rating),
       drinks: row.drinks,
       isFeatured: row.is_featured
@@ -215,6 +222,7 @@ router.post('/:id/toggle-featured', authenticateAdmin, async (req, res) => {
       districtId: row.district_id,
       address: row.address,
       image: row.image,
+      pricePerPerson: parseFloat(row.price_per_person),
       rating: parseFloat(row.rating),
       drinks: row.drinks,
       isFeatured: row.is_featured

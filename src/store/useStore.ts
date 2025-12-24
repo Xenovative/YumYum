@@ -467,6 +467,7 @@ export const useStore = create<AppState>()(
             districtId: bar.districtId,
             address: bar.address,
             image: bar.image,
+            pricePerPerson: bar.pricePerPerson,
             rating: bar.rating,
             drinks: bar.drinks,
           })

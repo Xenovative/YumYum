@@ -11,6 +11,7 @@ export interface Bar {
   districtId: string
   address: string
   image: string
+  pricePerPerson: number
   rating: number
   drinks: string[]
   isFeatured?: boolean

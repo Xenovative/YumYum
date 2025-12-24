@@ -76,6 +76,7 @@ export default function Admin() {
     districtId: '',
     address: '',
     image: 'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?w=400',
+    pricePerPerson: 250,
     rating: 4.0,
     drinks: ''
   })
@@ -197,6 +198,7 @@ export default function Admin() {
       districtId: '',
       address: '',
       image: 'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?w=400',
+      pricePerPerson: 250,
       rating: 4.0,
       drinks: ''
     })
@@ -212,6 +214,7 @@ export default function Admin() {
       districtId: bar.districtId,
       address: bar.address,
       image: bar.image,
+      pricePerPerson: bar.pricePerPerson,
       rating: bar.rating,
       drinks: bar.drinks.join(', ')
     })
@@ -231,6 +234,7 @@ export default function Admin() {
           districtId: barForm.districtId,
           address: barForm.address,
           image: barForm.image,
+          pricePerPerson: barForm.pricePerPerson,
           rating: barForm.rating,
           drinks: drinksArray
         })
@@ -241,6 +245,7 @@ export default function Admin() {
           districtId: barForm.districtId,
           address: barForm.address,
           image: barForm.image,
+          pricePerPerson: barForm.pricePerPerson,
           rating: barForm.rating,
           drinks: drinksArray
         })
@@ -807,6 +812,18 @@ export default function Admin() {
                     type="text"
                     value={barForm.name}
                     onChange={(e) => setBarForm({ ...barForm, name: e.target.value })}
+                    className="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">每人價格 (HKD)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={barForm.pricePerPerson}
+                    onChange={(e) => setBarForm({ ...barForm, pricePerPerson: Number(e.target.value) || 0 })}
                     className="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
                     required
                   />
