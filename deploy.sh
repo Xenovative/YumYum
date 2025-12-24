@@ -42,9 +42,13 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
-# Install backend dependencies
-echo "Installing backend dependencies..."
-npm install
+# Install backend dependencies (skip if already installed)
+if [ -d node_modules ]; then
+    echo "Skipping backend npm install (node_modules exists)..."
+else
+    echo "Installing backend dependencies..."
+    npm install
+fi
 
 # Build backend
 echo "Building backend..."
@@ -92,9 +96,13 @@ echo ""
 echo "=== Deploying Frontend ==="
 cd "$APP_DIR"
 
-# Install frontend dependencies
-echo "Installing frontend dependencies..."
-npm install --legacy-peer-deps
+# Install frontend dependencies (skip if already installed)
+if [ -d node_modules ]; then
+    echo "Skipping frontend npm install (node_modules exists)..."
+else
+    echo "Installing frontend dependencies..."
+    npm install --legacy-peer-deps
+fi
 
 # Build frontend
 echo "Building frontend..."
