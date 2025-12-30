@@ -266,21 +266,13 @@ export const adminAPI = {
 
   getAdSettings: async () => {
     const { data } = await api.get('/admin/ad-settings', getAdminHeaders());
-    return data as {
-      bannerImage?: string | null;
-      bannerLink?: string | null;
-      enabledHome?: boolean;
-      enabledParties?: boolean;
-      enabledProfile?: boolean;
-    };
+    return data;
   },
 
   updateAdSettings: async (payload: {
-    bannerImage?: string | null;
-    bannerLink?: string | null;
-    enabledHome?: boolean;
-    enabledParties?: boolean;
-    enabledProfile?: boolean;
+    homeAds?: { image: string; link: string; enabled?: boolean }[];
+    partiesAds?: { image: string; link: string; enabled?: boolean }[];
+    profileAds?: { image: string; link: string; enabled?: boolean }[];
   }) => {
     const { data } = await api.put('/admin/ad-settings', payload, getAdminHeaders());
     return data;

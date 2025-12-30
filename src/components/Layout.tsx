@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { Beer, MapPin, QrCode, User, Users } from 'lucide-react'
 import SEO from './SEO'
@@ -5,6 +6,21 @@ import SEO from './SEO'
 export default function Layout() {
   const location = useLocation()
   const path = location.pathname
+  const [showAgeGate, setShowAgeGate] = useState<boolean>(true)
+
+  useEffect(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('age_confirmed') : null
+    if (stored === 'true') {
+      setShowAgeGate(false)
+    } else {
+      setShowAgeGate(true)
+    }
+  }, [])
+
+  const handleConfirmAge = () => {
+    localStorage.setItem('age_confirmed', 'true')
+    setShowAgeGate(false)
+  }
 
   const meta = (() => {
     if (path.startsWith('/bar/')) {
@@ -36,6 +52,31 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-dark-900 text-white flex flex-col">
+      {showAgeGate && (
+        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center px-6">
+          <div className="max-w-sm w-full glass border border-primary-500/40 rounded-2xl p-6 space-y-4 text-center">
+            <div className="text-3xl">🔞</div>
+            <h2 className="text-xl font-bold">僅限18歲或以上</h2>
+            <p className="text-sm text-gray-300">
+              本平台提供與酒精相關的內容。請確認你已滿18歲（或當地法定飲酒年齡）。
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleConfirmAge}
+                className="flex-1 bg-primary-500 text-dark-900 font-semibold py-3 rounded-lg"
+              >
+                我已滿18歲
+              </button>
+              <a
+                href="https://www.google.com"
+                className="flex-1 border border-gray-700 text-gray-200 font-semibold py-3 rounded-lg hover:bg-white/5 text-center"
+              >
+                我未滿18歲
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
       <SEO
         title={meta.title}
         description={meta.description}

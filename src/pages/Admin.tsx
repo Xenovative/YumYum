@@ -18,11 +18,9 @@ export default function Admin() {
   const [purgeScope, setPurgeScope] = useState<'all' | 'parties' | 'passes' | 'bars'>('all')
   const [purgeConfirm, setPurgeConfirm] = useState('')
   const [adSettings, setAdSettings] = useState({
-    bannerImage: '',
-    bannerLink: '',
-    enabledHome: true,
-    enabledParties: true,
-    enabledProfile: false,
+    homeAds: [] as { image: string; link: string; enabled?: boolean }[],
+    partiesAds: [] as { image: string; link: string; enabled?: boolean }[],
+    profileAds: [] as { image: string; link: string; enabled?: boolean }[],
   })
   const [adLoading, setAdLoading] = useState(false)
   const [adSaving, setAdSaving] = useState(false)
@@ -100,11 +98,9 @@ export default function Admin() {
           adminAPI.getBarUsers().catch(() => []),
         ])
         setAdSettings({
-          bannerImage: ads.bannerImage || '',
-          bannerLink: ads.bannerLink || '',
-          enabledHome: ads.enabledHome ?? true,
-          enabledParties: ads.enabledParties ?? true,
-          enabledProfile: ads.enabledProfile ?? false,
+          homeAds: ads.homeAds || [],
+          partiesAds: ads.partiesAds || [],
+          profileAds: ads.profileAds || [],
         })
         setBarUsers(users || [])
       } catch (error) {
@@ -571,60 +567,103 @@ export default function Admin() {
           </div>
 
           {/* Ad Settings */}
-          <div className="glass rounded-xl p-4 space-y-3 border border-primary-500/20">
+          <div className="glass rounded-xl p-4 space-y-4 border border-primary-500/20">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-primary-200">廣告設定</h3>
+              <h3 className="font-semibold text-primary-200">廣告設定（多則 / 分頁）</h3>
               {adLoading && <Loader2 className="w-4 h-4 animate-spin text-primary-300" />}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Banner 圖片 URL</label>
-                <input
-                  value={adSettings.bannerImage}
-                  onChange={(e) => setAdSettings((s) => ({ ...s, bannerImage: e.target.value }))}
-                  className="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
-                  placeholder="https://..."
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">點擊連結</label>
-                <input
-                  value={adSettings.bannerLink}
-                  onChange={(e) => setAdSettings((s) => ({ ...s, bannerLink: e.target.value }))}
-                  className="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
-                  placeholder="https://..."
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-200">
-              <label className="flex items-center justify-between bg-dark-800 rounded-lg px-3 py-2 border border-gray-800">
-                <span>首頁顯示</span>
-                <input
-                  type="checkbox"
-                  checked={adSettings.enabledHome}
-                  onChange={(e) => setAdSettings((s) => ({ ...s, enabledHome: e.target.checked }))}
-                  className="w-5 h-5 accent-primary-500"
-                />
-              </label>
-              <label className="flex items-center justify-between bg-dark-800 rounded-lg px-3 py-2 border border-gray-800">
-                <span>酒局列表顯示</span>
-                <input
-                  type="checkbox"
-                  checked={adSettings.enabledParties}
-                  onChange={(e) => setAdSettings((s) => ({ ...s, enabledParties: e.target.checked }))}
-                  className="w-5 h-5 accent-primary-500"
-                />
-              </label>
-              <label className="flex items-center justify-between bg-dark-800 rounded-lg px-3 py-2 border border-gray-800">
-                <span>個人檔案顯示</span>
-                <input
-                  type="checkbox"
-                  checked={adSettings.enabledProfile}
-                  onChange={(e) => setAdSettings((s) => ({ ...s, enabledProfile: e.target.checked }))}
-                  className="w-5 h-5 accent-primary-500"
-                />
-              </label>
-            </div>
+
+            {(['homeAds', 'partiesAds', 'profileAds'] as const).map((key) => {
+              const label =
+                key === 'homeAds' ? '首頁' : key === 'partiesAds' ? '酒局列表' : '個人檔案'
+              const items = adSettings[key]
+              return (
+                <div key={key} className="space-y-2 bg-dark-800 border border-gray-800 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold text-sm">{label} 廣告 ({items.length})</div>
+                    <button
+                      onClick={() =>
+                        setAdSettings((s) => ({
+                          ...s,
+                          [key]: [...s[key], { image: '', link: '', enabled: true }],
+                        }))
+                      }
+                      className="text-xs px-3 py-1 rounded bg-primary-500/20 text-primary-200 hover:bg-primary-500/30"
+                    >
+                      新增
+                    </button>
+                  </div>
+                  {items.length === 0 ? (
+                    <p className="text-xs text-gray-500">尚無廣告，點「新增」來建立</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {items.map((ad, idx) => (
+                        <div key={idx} className="grid grid-cols-1 md:grid-cols-5 gap-2 bg-dark-900/60 rounded-lg p-3 border border-gray-800">
+                          <div className="md:col-span-2">
+                            <label className="block text-[11px] text-gray-400 mb-1">圖片 URL</label>
+                            <input
+                              value={ad.image}
+                              onChange={(e) =>
+                                setAdSettings((s) => {
+                                  const next = [...s[key]]
+                                  next[idx] = { ...next[idx], image: e.target.value }
+                                  return { ...s, [key]: next }
+                                })
+                              }
+                              className="w-full bg-dark-800 border border-gray-700 rounded px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+                              placeholder="https://..."
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-[11px] text-gray-400 mb-1">連結</label>
+                            <input
+                              value={ad.link}
+                              onChange={(e) =>
+                                setAdSettings((s) => {
+                                  const next = [...s[key]]
+                                  next[idx] = { ...next[idx], link: e.target.value }
+                                  return { ...s, [key]: next }
+                                })
+                              }
+                              className="w-full bg-dark-800 border border-gray-700 rounded px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+                              placeholder="https://..."
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={ad.enabled !== false}
+                              onChange={(e) =>
+                                setAdSettings((s) => {
+                                  const next = [...s[key]]
+                                  next[idx] = { ...next[idx], enabled: e.target.checked }
+                                  return { ...s, [key]: next }
+                                })
+                              }
+                              className="accent-primary-500"
+                            />
+                            <span className="text-xs text-gray-300">啟用</span>
+                            <button
+                              onClick={() =>
+                                setAdSettings((s) => {
+                                  const next = [...s[key]]
+                                  next.splice(idx, 1)
+                                  return { ...s, [key]: next }
+                                })
+                              }
+                              className="ml-auto text-xs text-red-400 hover:text-red-300"
+                            >
+                              移除
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+
             <div className="flex items-center gap-3">
               <button
                 onClick={handleSaveAds}

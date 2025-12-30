@@ -290,49 +290,47 @@ router.put('/payment-settings', authenticateAdmin, async (req, res) => {
   }
 });
 
+const adItemSchema = z.object({
+  image: z.string().url().min(1),
+  link: z.string().url().min(1),
+  enabled: z.boolean().default(true),
+});
+
 const adSettingsSchema = z.object({
-  bannerImage: z.string().optional(),
-  bannerLink: z.string().optional(),
-  enabledHome: z.boolean().optional(),
-  enabledParties: z.boolean().optional(),
-  enabledProfile: z.boolean().optional(),
+  homeAds: z.array(adItemSchema).optional(),
+  partiesAds: z.array(adItemSchema).optional(),
+  profileAds: z.array(adItemSchema).optional(),
 });
 
 router.get('/ad-settings', authenticateAdmin, async (req, res) => {
   try {
     await query(`CREATE TABLE IF NOT EXISTS ad_settings (
       id INT PRIMARY KEY,
-      banner_image TEXT,
-      banner_link TEXT,
-      enabled_home BOOLEAN DEFAULT true,
-      enabled_parties BOOLEAN DEFAULT true,
-      enabled_profile BOOLEAN DEFAULT false,
+      home_ads JSONB DEFAULT '[]'::jsonb,
+      parties_ads JSONB DEFAULT '[]'::jsonb,
+      profile_ads JSONB DEFAULT '[]'::jsonb,
       updated_at TIMESTAMP DEFAULT NOW()
     )`);
 
     const result = await query('SELECT * FROM ad_settings WHERE id = 1');
     if (result.rows.length === 0) {
       const insert = await query(
-        `INSERT INTO ad_settings (id, banner_image, banner_link, enabled_home, enabled_parties, enabled_profile)
-         VALUES (1, NULL, NULL, true, true, false)
+        `INSERT INTO ad_settings (id, home_ads, parties_ads, profile_ads)
+         VALUES (1, '[]', '[]', '[]')
          RETURNING *`
       );
       return res.json({
-        bannerImage: insert.rows[0].banner_image,
-        bannerLink: insert.rows[0].banner_link,
-        enabledHome: insert.rows[0].enabled_home,
-        enabledParties: insert.rows[0].enabled_parties,
-        enabledProfile: insert.rows[0].enabled_profile,
+        homeAds: insert.rows[0].home_ads,
+        partiesAds: insert.rows[0].parties_ads,
+        profileAds: insert.rows[0].profile_ads,
       });
     }
 
     const row = result.rows[0];
     res.json({
-      bannerImage: row.banner_image,
-      bannerLink: row.banner_link,
-      enabledHome: row.enabled_home,
-      enabledParties: row.enabled_parties,
-      enabledProfile: row.enabled_profile,
+      homeAds: row.home_ads || [],
+      partiesAds: row.parties_ads || [],
+      profileAds: row.profile_ads || [],
     });
   } catch (error) {
     console.error('Get ad settings error:', error);
@@ -346,41 +344,33 @@ router.put('/ad-settings', authenticateAdmin, async (req, res) => {
 
     await query(`CREATE TABLE IF NOT EXISTS ad_settings (
       id INT PRIMARY KEY,
-      banner_image TEXT,
-      banner_link TEXT,
-      enabled_home BOOLEAN DEFAULT true,
-      enabled_parties BOOLEAN DEFAULT true,
-      enabled_profile BOOLEAN DEFAULT false,
+      home_ads JSONB DEFAULT '[]'::jsonb,
+      parties_ads JSONB DEFAULT '[]'::jsonb,
+      profile_ads JSONB DEFAULT '[]'::jsonb,
       updated_at TIMESTAMP DEFAULT NOW()
     )`);
 
     const result = await query(
-      `INSERT INTO ad_settings (id, banner_image, banner_link, enabled_home, enabled_parties, enabled_profile, updated_at)
-       VALUES (1, $1, $2, COALESCE($3, true), COALESCE($4, true), COALESCE($5, false), NOW())
+      `INSERT INTO ad_settings (id, home_ads, parties_ads, profile_ads, updated_at)
+       VALUES (1, $1, $2, $3, NOW())
        ON CONFLICT (id) DO UPDATE SET
-         banner_image = COALESCE(EXCLUDED.banner_image, ad_settings.banner_image),
-         banner_link = COALESCE(EXCLUDED.banner_link, ad_settings.banner_link),
-         enabled_home = COALESCE(EXCLUDED.enabled_home, ad_settings.enabled_home),
-         enabled_parties = COALESCE(EXCLUDED.enabled_parties, ad_settings.enabled_parties),
-         enabled_profile = COALESCE(EXCLUDED.enabled_profile, ad_settings.enabled_profile),
+         home_ads = COALESCE(EXCLUDED.home_ads, ad_settings.home_ads),
+         parties_ads = COALESCE(EXCLUDED.parties_ads, ad_settings.parties_ads),
+         profile_ads = COALESCE(EXCLUDED.profile_ads, ad_settings.profile_ads),
          updated_at = NOW()
        RETURNING *`,
       [
-        payload.bannerImage ?? null,
-        payload.bannerLink ?? null,
-        payload.enabledHome,
-        payload.enabledParties,
-        payload.enabledProfile,
+        JSON.stringify(payload.homeAds ?? []),
+        JSON.stringify(payload.partiesAds ?? []),
+        JSON.stringify(payload.profileAds ?? []),
       ]
     );
 
     const row = result.rows[0];
     res.json({
-      bannerImage: row.banner_image,
-      bannerLink: row.banner_link,
-      enabledHome: row.enabled_home,
-      enabledParties: row.enabled_parties,
-      enabledProfile: row.enabled_profile,
+      homeAds: row.home_ads || [],
+      partiesAds: row.parties_ads || [],
+      profileAds: row.profile_ads || [],
     });
   } catch (error: any) {
     console.error('Update ad settings error:', error);
@@ -427,6 +417,33 @@ router.post('/bar-users', authenticateAdmin, async (req, res) => {
   } catch (error: any) {
     console.error('Create bar user error:', error);
     res.status(400).json({ error: error?.message || 'Failed to create bar user' });
+  }
+});
+
+// List bar users
+router.get('/bar-users', authenticateAdmin, async (_req, res) => {
+  try {
+    const result = await query(
+      `SELECT bu.id, bu.bar_id, bu.email, bu.display_name, bu.role, bu.is_active, bu.created_at,
+              b.name AS bar_name
+       FROM bar_users bu
+       LEFT JOIN bars b ON bu.bar_id = b.id
+       ORDER BY bu.created_at DESC`
+    );
+    const users = result.rows.map((row) => ({
+      id: row.id,
+      barId: row.bar_id,
+      barName: row.bar_name,
+      email: row.email,
+      displayName: row.display_name,
+      role: row.role,
+      isActive: row.is_active,
+      createdAt: row.created_at,
+    }));
+    res.json(users);
+  } catch (error) {
+    console.error('Get bar users error:', error);
+    res.status(500).json({ error: 'Failed to fetch bar users' });
   }
 });
 
