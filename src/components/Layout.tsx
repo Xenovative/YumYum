@@ -9,7 +9,7 @@ export default function Layout() {
   const [showAgeGate, setShowAgeGate] = useState(true)
 
   useEffect(() => {
-    setShowAgeGate(true)
+    setShowAgeGate(path === '/')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [path])
 
