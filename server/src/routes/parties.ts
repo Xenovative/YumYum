@@ -399,7 +399,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     );
 
     const row = result.rows[0];
-    res.json({
+    const party = {
       id: row.id,
       hostId: row.host_id,
       hostName: row.host_name,
@@ -415,7 +415,16 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
       status: row.status,
       currentGuests: [],
       createdAt: row.created_at
-    });
+    };
+
+    // Notify via WebSocket
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('party:created', party);
+      io.emit('party:updated', party);
+    }
+
+    res.json(party);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Invalid input', details: error.errors });
@@ -471,6 +480,43 @@ router.post('/:id/join', authenticateToken, async (req: AuthRequest, res) => {
       );
     }
 
+    const updated = await query(
+      `SELECT id, host_id, host_name, host_display_name, host_avatar, pass_id, bar_id, bar_name, title, description,
+              max_female_guests, party_time, status, created_at
+       FROM parties WHERE id = $1`,
+      [req.params.id]
+    );
+
+    const membersResult = await query(
+      `SELECT user_id, name, display_name, avatar, tagline, gender, age, height_cm, drink_capacity, membership_tier,
+              membership_expiry, total_spent, total_visits, joined_at
+       FROM party_members WHERE party_id = $1`,
+      [req.params.id]
+    );
+
+    const io = req.app.get('io');
+    if (io && updated.rows[0]) {
+      io.emit('party:updated', {
+        ...updated.rows[0],
+        currentGuests: membersResult.rows.map(m => ({
+          userId: m.user_id,
+          name: m.name,
+          displayName: m.display_name,
+          avatar: m.avatar,
+          tagline: m.tagline,
+          gender: m.gender,
+          age: m.age,
+          heightCm: m.height_cm,
+          drinkCapacity: m.drink_capacity,
+          membershipTier: m.membership_tier,
+          membershipExpiry: m.membership_expiry,
+          totalSpent: m.total_spent,
+          totalVisits: m.total_visits,
+          joinedAt: m.joined_at,
+        }))
+      });
+    }
+
     res.json({ success: true });
   } catch (error) {
     console.error('Join party error:', error);
@@ -485,10 +531,42 @@ router.delete('/:id/leave', authenticateToken, async (req: AuthRequest, res) => 
       [req.params.id, req.userId]
     );
 
-    await query(
-      `UPDATE parties SET status = 'open', updated_at = NOW() WHERE id = $1 AND status = 'full'`,
+    const updated = await query(
+      `SELECT id, host_id, host_name, host_display_name, host_avatar, pass_id, bar_id, bar_name, title, description,
+              max_female_guests, party_time, status, created_at
+       FROM parties WHERE id = $1`,
       [req.params.id]
     );
+
+    const membersResult = await query(
+      `SELECT user_id, name, display_name, avatar, tagline, gender, age, height_cm, drink_capacity, membership_tier,
+              membership_expiry, total_spent, total_visits, joined_at
+       FROM party_members WHERE party_id = $1`,
+      [req.params.id]
+    );
+
+    const io = req.app.get('io');
+    if (io && updated.rows[0]) {
+      io.emit('party:updated', {
+        ...updated.rows[0],
+        currentGuests: membersResult.rows.map(m => ({
+          userId: m.user_id,
+          name: m.name,
+          displayName: m.display_name,
+          avatar: m.avatar,
+          tagline: m.tagline,
+          gender: m.gender,
+          age: m.age,
+          heightCm: m.height_cm,
+          drinkCapacity: m.drink_capacity,
+          membershipTier: m.membership_tier,
+          membershipExpiry: m.membership_expiry,
+          totalSpent: m.total_spent,
+          totalVisits: m.total_visits,
+          joinedAt: m.joined_at,
+        }))
+      });
+    }
 
     res.json({ success: true });
   } catch (error) {
@@ -509,6 +587,11 @@ router.delete('/:id', authenticateToken, async (req: AuthRequest, res) => {
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Party not found or unauthorized' });
+    }
+
+    const io = req.app.get('io');
+    if (io && result.rows[0]) {
+      io.emit('party:updated', { ...result.rows[0], currentGuests: [] });
     }
 
     res.json({ success: true });

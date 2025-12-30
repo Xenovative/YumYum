@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { io } from 'socket.io-client'
 import { Plus, Users, MapPin, Clock, Crown } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { format } from 'date-fns'
@@ -6,7 +8,24 @@ import { zhTW } from 'date-fns/locale'
 import AdBanner from '../components/AdBanner'
 
 export default function Parties() {
-  const { user, isLoggedIn, getOpenParties, getMyHostedParties, getMyJoinedParties, activePasses } = useStore()
+  const { user, isLoggedIn, getOpenParties, getMyHostedParties, getMyJoinedParties, activePasses, upsertPartyFromSocket } = useStore()
+  const [toast, setToast] = useState<string | null>(null)
+  useEffect(() => {
+    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3001', { transports: ['websocket'] })
+    const handleCreated = (party: any) => {
+      upsertPartyFromSocket(party)
+      setToast(`${party.hostDisplayName || party.hostName || '有人'} 剛開了一個新酒局：${party.title}`)
+      setTimeout(() => setToast(null), 4000)
+    }
+    const handleUpdated = (party: any) => upsertPartyFromSocket(party)
+    socket.on('party:created', handleCreated)
+    socket.on('party:updated', handleUpdated)
+    return () => {
+      socket.off('party:created', handleCreated)
+      socket.off('party:updated', handleUpdated)
+      socket.disconnect()
+    }
+  }, [upsertPartyFromSocket])
   
   const openParties = getOpenParties()
   const myHostedParties = getMyHostedParties()
@@ -195,6 +214,12 @@ export default function Parties() {
           <Link to="/districts" className="text-primary-500">
             瀏覽酒吧
           </Link>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-lg bg-primary-500 text-dark-900 shadow-lg text-sm">
+          {toast}
         </div>
       )}
     </div>

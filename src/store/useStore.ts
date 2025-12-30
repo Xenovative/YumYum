@@ -210,8 +210,10 @@ interface AppState {
   getMyHostedParties: () => Party[]
   getMyJoinedParties: () => Party[]
   loadAdminDashboard: () => Promise<void>
+  upsertPartyFromSocket: (party: Party) => void
   
   // Member management actions (admin)
+  setSelectedMember: (id: string | null) => void
   updateMember: (userId: string, updates: Partial<User>) => Promise<void>
   removeMember: (userId: string) => Promise<void>
   
@@ -256,6 +258,19 @@ export const useStore = create<AppState>()(
         fpsQrCode: null,
         alipayQrCode: null,
         wechatQrCode: null,
+      },
+      upsertPartyFromSocket: (incoming) => {
+        set((state) => {
+          const merge = (list: Party[]) => {
+            const exists = list.find((p) => p.id === incoming.id)
+            const merged = exists ? list.map((p) => (p.id === incoming.id ? { ...p, ...incoming } : p)) : [...list, incoming]
+            return merged.sort((a, b) => new Date(a.partyTime).getTime() - new Date(b.partyTime).getTime())
+          }
+          return {
+            parties: merge(state.parties),
+            adminParties: state.adminParties ? merge(state.adminParties) : state.adminParties,
+          }
+        })
       },
 
       // Bar portal actions
@@ -327,6 +342,10 @@ export const useStore = create<AppState>()(
         const result = await barPortalAPI.updateBar(updates)
         set({ barProfile: result.bar })
         return result.bar
+      },
+      setSelectedMember: (id) => {
+        // No-op placeholder for backwards compatibility; modal selection is handled in component state
+        if (!id) return
       },
 
       register: async (email, password, name, phone) => {
