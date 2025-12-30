@@ -1,4 +1,5 @@
-import { BookOpen, Info, Shield, Smartphone } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { BookOpen, Info, Shield, Smartphone, ArrowLeft } from 'lucide-react'
 
 export default function Help() {
   const faqs = [
@@ -18,9 +19,14 @@ export default function Help() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Info className="w-5 h-5 text-primary-400" />
-        <h1 className="text-xl font-semibold">使用說明</h1>
+      <div className="flex items-center gap-3">
+        <Link to="/profile" className="text-gray-400 hover:text-white">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <div className="flex items-center gap-2">
+          <Info className="w-5 h-5 text-primary-400" />
+          <h1 className="text-xl font-semibold">使用說明</h1>
+        </div>
       </div>
 
       <div className="glass rounded-xl p-4 space-y-3">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
-import { Clock, Ticket, Loader2, AlertCircle } from 'lucide-react'
+import { Clock, Ticket, Loader2, AlertCircle, ArrowLeft } from 'lucide-react'
 import { passesAPI } from '../services/api'
 import { ActivePass } from '../types'
 
@@ -28,9 +29,14 @@ export default function History() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Clock className="w-5 h-5 text-primary-400" />
-        <h1 className="text-xl font-semibold">購買記錄</h1>
+      <div className="flex items-center gap-3">
+        <Link to="/profile" className="text-gray-400 hover:text-white">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <div className="flex items-center gap-2">
+          <Clock className="w-5 h-5 text-primary-400" />
+          <h1 className="text-xl font-semibold">購買記錄</h1>
+        </div>
       </div>
 
       {loading && (

@@ -48,9 +48,6 @@ export function authenticateAdmin(req: Request, res: Response, next: NextFunctio
     if (!decoded.isAdmin) {
       return res.status(403).json({ error: 'Admin access required' });
     }
-    if (decoded.iat && decoded.iat < BOOT_TIME) {
-      return res.status(403).json({ error: 'Token invalidated after server restart' });
-    }
     next();
   } catch (error) {
     return res.status(403).json({ error: 'Invalid or expired admin token' });

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Bell, Lock, Moon, Smartphone, Globe, Loader2, CheckCircle2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Bell, Lock, Moon, Smartphone, Globe, Loader2, CheckCircle2, ArrowLeft } from 'lucide-react'
 import { useStore } from '../store/useStore'
 
 export default function SettingsPage() {
@@ -29,9 +30,14 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Lock className="w-5 h-5 text-primary-400" />
-        <h1 className="text-xl font-semibold">設定</h1>
+      <div className="flex items-center gap-3">
+        <Link to="/profile" className="text-gray-400 hover:text-white">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <div className="flex items-center gap-2">
+          <Lock className="w-5 h-5 text-primary-400" />
+          <h1 className="text-xl font-semibold">設定</h1>
+        </div>
       </div>
 
       <div className="glass rounded-xl p-4 space-y-3">

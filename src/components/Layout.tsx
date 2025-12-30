@@ -43,7 +43,7 @@ export default function Layout() {
       />
       {/* Header */}
       <header className="glass sticky top-0 z-50 px-4 py-3">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
+        <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <Beer className="w-8 h-8 text-primary-500" />
             <span className="text-xl font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
@@ -56,14 +56,14 @@ export default function Layout() {
 
       {/* Main Content */}
       <main className="flex-1 pb-20">
-        <div className="max-w-lg mx-auto px-4 py-6">
+        <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto px-4 py-6">
           <Outlet />
         </div>
       </main>
 
       {/* Bottom Navigation */}
       <nav className="glass fixed bottom-0 left-0 right-0 z-50">
-        <div className="max-w-lg mx-auto flex justify-around py-2">
+        <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto flex justify-around py-2">
           {navItems.map(({ path, icon: Icon, label }) => {
             const isActive = location.pathname === path
             return (
