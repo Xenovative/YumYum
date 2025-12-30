@@ -290,6 +290,104 @@ router.put('/payment-settings', authenticateAdmin, async (req, res) => {
   }
 });
 
+const adSettingsSchema = z.object({
+  bannerImage: z.string().optional(),
+  bannerLink: z.string().optional(),
+  enabledHome: z.boolean().optional(),
+  enabledParties: z.boolean().optional(),
+  enabledProfile: z.boolean().optional(),
+});
+
+router.get('/ad-settings', authenticateAdmin, async (req, res) => {
+  try {
+    await query(`CREATE TABLE IF NOT EXISTS ad_settings (
+      id INT PRIMARY KEY,
+      banner_image TEXT,
+      banner_link TEXT,
+      enabled_home BOOLEAN DEFAULT true,
+      enabled_parties BOOLEAN DEFAULT true,
+      enabled_profile BOOLEAN DEFAULT false,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )`);
+
+    const result = await query('SELECT * FROM ad_settings WHERE id = 1');
+    if (result.rows.length === 0) {
+      const insert = await query(
+        `INSERT INTO ad_settings (id, banner_image, banner_link, enabled_home, enabled_parties, enabled_profile)
+         VALUES (1, NULL, NULL, true, true, false)
+         RETURNING *`
+      );
+      return res.json({
+        bannerImage: insert.rows[0].banner_image,
+        bannerLink: insert.rows[0].banner_link,
+        enabledHome: insert.rows[0].enabled_home,
+        enabledParties: insert.rows[0].enabled_parties,
+        enabledProfile: insert.rows[0].enabled_profile,
+      });
+    }
+
+    const row = result.rows[0];
+    res.json({
+      bannerImage: row.banner_image,
+      bannerLink: row.banner_link,
+      enabledHome: row.enabled_home,
+      enabledParties: row.enabled_parties,
+      enabledProfile: row.enabled_profile,
+    });
+  } catch (error) {
+    console.error('Get ad settings error:', error);
+    res.status(500).json({ error: 'Failed to fetch ad settings' });
+  }
+});
+
+router.put('/ad-settings', authenticateAdmin, async (req, res) => {
+  try {
+    const payload = adSettingsSchema.parse(req.body);
+
+    await query(`CREATE TABLE IF NOT EXISTS ad_settings (
+      id INT PRIMARY KEY,
+      banner_image TEXT,
+      banner_link TEXT,
+      enabled_home BOOLEAN DEFAULT true,
+      enabled_parties BOOLEAN DEFAULT true,
+      enabled_profile BOOLEAN DEFAULT false,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )`);
+
+    const result = await query(
+      `INSERT INTO ad_settings (id, banner_image, banner_link, enabled_home, enabled_parties, enabled_profile, updated_at)
+       VALUES (1, $1, $2, COALESCE($3, true), COALESCE($4, true), COALESCE($5, false), NOW())
+       ON CONFLICT (id) DO UPDATE SET
+         banner_image = COALESCE(EXCLUDED.banner_image, ad_settings.banner_image),
+         banner_link = COALESCE(EXCLUDED.banner_link, ad_settings.banner_link),
+         enabled_home = COALESCE(EXCLUDED.enabled_home, ad_settings.enabled_home),
+         enabled_parties = COALESCE(EXCLUDED.enabled_parties, ad_settings.enabled_parties),
+         enabled_profile = COALESCE(EXCLUDED.enabled_profile, ad_settings.enabled_profile),
+         updated_at = NOW()
+       RETURNING *`,
+      [
+        payload.bannerImage ?? null,
+        payload.bannerLink ?? null,
+        payload.enabledHome,
+        payload.enabledParties,
+        payload.enabledProfile,
+      ]
+    );
+
+    const row = result.rows[0];
+    res.json({
+      bannerImage: row.banner_image,
+      bannerLink: row.banner_link,
+      enabledHome: row.enabled_home,
+      enabledParties: row.enabled_parties,
+      enabledProfile: row.enabled_profile,
+    });
+  } catch (error: any) {
+    console.error('Update ad settings error:', error);
+    res.status(400).json({ error: error?.message || 'Failed to update ad settings' });
+  }
+});
+
 // Create bar user account
 router.post('/bar-users', authenticateAdmin, async (req, res) => {
   try {

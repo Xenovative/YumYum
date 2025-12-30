@@ -17,6 +17,30 @@ export default function Admin() {
   const [purgeMessage, setPurgeMessage] = useState<string | null>(null)
   const [purgeScope, setPurgeScope] = useState<'all' | 'parties' | 'passes' | 'bars'>('all')
   const [purgeConfirm, setPurgeConfirm] = useState('')
+  const [adSettings, setAdSettings] = useState({
+    bannerImage: '',
+    bannerLink: '',
+    enabledHome: true,
+    enabledParties: true,
+    enabledProfile: false,
+  })
+  const [adLoading, setAdLoading] = useState(false)
+  const [adSaving, setAdSaving] = useState(false)
+  const [adMessage, setAdMessage] = useState<string | null>(null)
+  const [barUsers, setBarUsers] = useState<any[]>([])
+  const [barUsersLoading, setBarUsersLoading] = useState(false)
+  const handleSaveAds = async () => {
+    setAdSaving(true)
+    setAdMessage(null)
+    try {
+      await adminAPI.updateAdSettings(adSettings)
+      setAdMessage('已儲存')
+    } catch (err: any) {
+      setAdMessage(err?.response?.data?.error || '儲存失敗')
+    } finally {
+      setAdSaving(false)
+    }
+  }
   
   const [activeTab, setActiveTab] = useState<'payments' | 'parties' | 'members' | 'bars' | 'settings' | 'database'>('payments')
   const [scanResult, setScanResult] = useState<any>(null)
@@ -64,12 +88,34 @@ export default function Admin() {
     }
   }, [isAdminAuthenticated, adminDataLoaded, adminDataLoading, loadAdminDashboard])
 
-  // Refresh members when opening the Members tab
+  // Load ad settings and bar users on admin auth
   useEffect(() => {
-    if (isAdminAuthenticated && activeTab === 'members') {
-      loadAdminDashboard()
-    }
-  }, [activeTab, isAdminAuthenticated, loadAdminDashboard])
+    if (!isAdminAuthenticated) return
+    ;(async () => {
+      setAdLoading(true)
+      setBarUsersLoading(true)
+      try {
+        const [ads, users] = await Promise.all([
+          adminAPI.getAdSettings(),
+          adminAPI.getBarUsers().catch(() => []),
+        ])
+        setAdSettings({
+          bannerImage: ads.bannerImage || '',
+          bannerLink: ads.bannerLink || '',
+          enabledHome: ads.enabledHome ?? true,
+          enabledParties: ads.enabledParties ?? true,
+          enabledProfile: ads.enabledProfile ?? false,
+        })
+        setBarUsers(users || [])
+      } catch (error) {
+        console.error('Failed to load ad/bar user settings', error)
+        setAdMessage('設定讀取失敗')
+      } finally {
+        setAdLoading(false)
+        setBarUsersLoading(false)
+      }
+    })()
+  }, [isAdminAuthenticated])
 
   // Bar form state - must be declared before any early returns
   const [showBarForm, setShowBarForm] = useState(false)
@@ -134,6 +180,11 @@ export default function Admin() {
         isActive: true,
       })
       alert('酒吧帳號已建立')
+      // reload bar users list
+      setBarUsersLoading(true)
+      const users = await adminAPI.getBarUsers().catch(() => [])
+      setBarUsers(users || [])
+      setBarUsersLoading(false)
     } catch (err: any) {
       alert(err?.response?.data?.error || '建立酒吧帳號失敗')
     } finally {
@@ -516,6 +567,74 @@ export default function Admin() {
               {purgeMessage && (
                 <span className="text-xs text-red-200">{purgeMessage}</span>
               )}
+            </div>
+          </div>
+
+          {/* Ad Settings */}
+          <div className="glass rounded-xl p-4 space-y-3 border border-primary-500/20">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-primary-200">廣告設定</h3>
+              {adLoading && <Loader2 className="w-4 h-4 animate-spin text-primary-300" />}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Banner 圖片 URL</label>
+                <input
+                  value={adSettings.bannerImage}
+                  onChange={(e) => setAdSettings((s) => ({ ...s, bannerImage: e.target.value }))}
+                  className="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">點擊連結</label>
+                <input
+                  value={adSettings.bannerLink}
+                  onChange={(e) => setAdSettings((s) => ({ ...s, bannerLink: e.target.value }))}
+                  className="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
+                  placeholder="https://..."
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-200">
+              <label className="flex items-center justify-between bg-dark-800 rounded-lg px-3 py-2 border border-gray-800">
+                <span>首頁顯示</span>
+                <input
+                  type="checkbox"
+                  checked={adSettings.enabledHome}
+                  onChange={(e) => setAdSettings((s) => ({ ...s, enabledHome: e.target.checked }))}
+                  className="w-5 h-5 accent-primary-500"
+                />
+              </label>
+              <label className="flex items-center justify-between bg-dark-800 rounded-lg px-3 py-2 border border-gray-800">
+                <span>酒局列表顯示</span>
+                <input
+                  type="checkbox"
+                  checked={adSettings.enabledParties}
+                  onChange={(e) => setAdSettings((s) => ({ ...s, enabledParties: e.target.checked }))}
+                  className="w-5 h-5 accent-primary-500"
+                />
+              </label>
+              <label className="flex items-center justify-between bg-dark-800 rounded-lg px-3 py-2 border border-gray-800">
+                <span>個人檔案顯示</span>
+                <input
+                  type="checkbox"
+                  checked={adSettings.enabledProfile}
+                  onChange={(e) => setAdSettings((s) => ({ ...s, enabledProfile: e.target.checked }))}
+                  className="w-5 h-5 accent-primary-500"
+                />
+              </label>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleSaveAds}
+                disabled={adSaving}
+                className="px-4 py-2 rounded-lg bg-primary-500 text-dark-900 font-semibold text-sm disabled:opacity-60 flex items-center gap-2"
+              >
+                {adSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                儲存廣告設定
+              </button>
+              {adMessage && <span className="text-xs text-gray-300">{adMessage}</span>}
             </div>
           </div>
         </div>

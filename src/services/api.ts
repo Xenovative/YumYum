@@ -263,6 +263,33 @@ export const adminAPI = {
     const { data } = await api.post('/admin/db/purge', { scope }, getAdminHeaders());
     return data;
   },
+
+  getAdSettings: async () => {
+    const { data } = await api.get('/admin/ad-settings', getAdminHeaders());
+    return data as {
+      bannerImage?: string | null;
+      bannerLink?: string | null;
+      enabledHome?: boolean;
+      enabledParties?: boolean;
+      enabledProfile?: boolean;
+    };
+  },
+
+  updateAdSettings: async (payload: {
+    bannerImage?: string | null;
+    bannerLink?: string | null;
+    enabledHome?: boolean;
+    enabledParties?: boolean;
+    enabledProfile?: boolean;
+  }) => {
+    const { data } = await api.put('/admin/ad-settings', payload, getAdminHeaders());
+    return data;
+  },
+
+  getBarUsers: async () => {
+    const { data } = await api.get('/admin/bar-users', getAdminHeaders());
+    return data as any[];
+  },
 };
 
 // Bar Portal API (separate token)
