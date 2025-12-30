@@ -20,9 +20,11 @@ app.use(cors({
   credentials: true
 }));
 
+const compressionMiddleware = compression();
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(compression());
+app.use(compressionMiddleware as express.RequestHandler);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
