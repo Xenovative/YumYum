@@ -1,9 +1,31 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { Beer, MapPin, QrCode, User, Users } from 'lucide-react'
+import SEO from './SEO'
 
 export default function Layout() {
   const location = useLocation()
-  
+  const path = location.pathname
+
+  const meta = (() => {
+    if (path.startsWith('/bar/')) {
+      return { title: '酒吧詳情 | OneNightDrink', description: '探索酒吧資訊與暢飲通行證優惠' }
+    }
+    if (path.startsWith('/party/')) {
+      return { title: '酒局詳情 | OneNightDrink', description: '加入酒局，認識新朋友與享受暢飲體驗' }
+    }
+    const map: Record<string, { title: string; description: string }> = {
+      '/': { title: 'OneNightDrink | 暢飲通行證', description: '購買暢飲通行證，探索全港酒吧與酒局' },
+      '/districts': { title: '地區搜尋 | OneNightDrink', description: '按地區瀏覽合作酒吧與暢飲方案' },
+      '/parties': { title: '酒局列表 | OneNightDrink', description: '查看開團酒局，立即加入或創建酒局' },
+      '/my-pass': { title: '我的通行證 | OneNightDrink', description: '查看並出示你的暢飲通行證 QR Code' },
+      '/profile': { title: '個人資料 | OneNightDrink', description: '管理你的個人檔案與通行證' },
+      '/history': { title: '購買記錄 | OneNightDrink', description: '查看你的暢飲通行證購買紀錄' },
+      '/help': { title: '使用說明 | OneNightDrink', description: '了解如何使用暢飲通行證與常見問題' },
+      '/settings': { title: '設定 | OneNightDrink', description: '管理通知、語言與帳號設定' },
+    }
+    return map[path] || { title: 'OneNightDrink', description: '暢飲通行證平台' }
+  })()
+
   const navItems = [
     { path: '/', icon: Beer, label: '首頁' },
     { path: '/districts', icon: MapPin, label: '地區' },
@@ -14,6 +36,11 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-dark-900 text-white flex flex-col">
+      <SEO
+        title={meta.title}
+        description={meta.description}
+        canonical={typeof window !== 'undefined' ? `${window.location.origin}${path}` : undefined}
+      />
       {/* Header */}
       <header className="glass sticky top-0 z-50 px-4 py-3">
         <div className="max-w-lg mx-auto flex items-center justify-between">

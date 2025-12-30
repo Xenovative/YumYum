@@ -24,13 +24,12 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",
-    "react-qr-reader": "^2.2.1",
+    "@yudiel/react-qr-scanner": "^2.2.3",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
-    "@types/react-qr-reader": "^2.1.4",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.31",
