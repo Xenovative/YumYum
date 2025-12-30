@@ -33,6 +33,7 @@ export default function PartyDetail() {
     userId: party.hostId,
     name: party.hostName,
     displayName: party.hostDisplayName,
+    tagline: party.hostTagline,
     avatar: party.hostAvatar,
     gender: party.hostGender as string | undefined,
     age: (party as any).hostAge as number | undefined,
@@ -114,6 +115,11 @@ export default function PartyDetail() {
               {party.hostDisplayName || party.hostName}
               {isHost && <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded ml-2">主辦</span>}
             </p>
+            {party.hostTagline && (
+              <p className="text-xs text-gray-300 mt-1 bg-white/5 px-2 py-1 rounded-lg inline-block">
+                {party.hostTagline}
+              </p>
+            )}
           </div>
           <span className={`text-xs px-3 py-1 rounded-full ${
             party.status === 'open' ? 'bg-green-500/20 text-green-400' :
@@ -200,7 +206,7 @@ export default function PartyDetail() {
 
       {selectedMember && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-dark-900 rounded-2xl w-full max-w-md p-6 space-y-4 border border-gray-800">
+          <div className="glass rounded-2xl w-full max-w-md p-6 space-y-4 border border-gray-800">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {selectedMember.avatar ? (
@@ -215,7 +221,9 @@ export default function PartyDetail() {
                 <div>
                   <p className="font-semibold">{selectedMember.displayName || selectedMember.name}</p>
                   {selectedMember.gender && (
-                    <p className="text-xs text-gray-400">性別: {selectedMember.gender === 'female' ? '女' : selectedMember.gender === 'male' ? '男' : '其他'}</p>
+                    <p className="text-xs text-gray-400">
+                      性別: {selectedMember.gender === 'female' ? '女' : selectedMember.gender === 'male' ? '男' : '其他'}
+                    </p>
                   )}
                 </div>
               </div>
@@ -223,6 +231,11 @@ export default function PartyDetail() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+            {selectedMember.tagline && (
+              <div className="bg-white/5 text-gray-100 text-sm px-3 py-2 rounded-xl inline-block">
+                {selectedMember.tagline}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3 text-sm text-gray-300">
               <div className="glass rounded-lg p-3">
                 <p className="text-xs text-gray-500">性別</p>

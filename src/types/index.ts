@@ -66,6 +66,7 @@ export interface PartyMember {
   userId: string
   name: string
   displayName?: string
+  tagline?: string
   avatar?: string
   gender: Gender
   age?: number
@@ -84,6 +85,7 @@ export interface Party {
   hostName: string
   hostDisplayName?: string
   hostAvatar?: string
+  hostTagline?: string
   hostGender?: Gender
   hostAge?: number
   hostHeightCm?: number

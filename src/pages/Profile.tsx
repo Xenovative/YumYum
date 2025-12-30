@@ -1,5 +1,6 @@
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { User as UserIcon, LogOut, History, HelpCircle, Settings, ChevronRight, Crown, Edit3 } from 'lucide-react'
+import { User as UserIcon, LogOut, History, HelpCircle, Settings, ChevronRight, Crown, Edit3, Camera, X } from 'lucide-react'
 import { useStore } from '../store/useStore'
 
 const genderLabels = {
@@ -16,8 +17,12 @@ const membershipLabels = {
 }
 
 export default function Profile() {
-  const { isLoggedIn, user, logout, activePasses, getActivePass } = useStore()
+  const { isLoggedIn, user, logout, activePasses, getActivePass, updateProfile } = useStore()
   const activePass = getActivePass()
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [cropSource, setCropSource] = useState<string | null>(null)
+  const [cropZoom, setCropZoom] = useState(1.2)
+  const [uploadError, setUploadError] = useState<string>('')
 
   if (!isLoggedIn || !user) {
     return (
@@ -62,12 +67,12 @@ export default function Profile() {
       {/* Profile Header */}
       <div className="glass rounded-2xl p-6">
         <div className="flex items-start gap-4">
-          <div className="relative shrink-0">
+          <div className="relative shrink-0 group">
             {user.avatar ? (
               <img 
                 src={user.avatar} 
                 alt="Avatar" 
-                className="w-16 h-16 rounded-full bg-dark-800"
+                className="w-16 h-16 rounded-full bg-dark-800 object-cover"
               />
             ) : (
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
@@ -76,11 +81,42 @@ export default function Profile() {
                 </span>
               </div>
             )}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-sm font-medium gap-2"
+            >
+              <Camera className="w-4 h-4" />
+              更換
+            </button>
             {user.membershipTier !== 'free' && (
               <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
                 <Crown className="w-3 h-3 text-dark-900" />
               </div>
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                if (file.size > 2 * 1024 * 1024) {
+                  setUploadError('圖片需小於 2MB')
+                  return
+                }
+                const reader = new FileReader()
+                reader.onload = () => {
+                  setCropSource(reader.result as string)
+                  setCropZoom(1.2)
+                  setUploadError('')
+                }
+                reader.onerror = () => setUploadError('上傳失敗，請重試')
+                reader.readAsDataURL(file)
+                // reset input so same file can be reselected
+                e.target.value = ''
+              }}
+            />
           </div>
           {user.tagline && (
             <div className="relative">
@@ -204,6 +240,93 @@ export default function Profile() {
         <LogOut className="w-5 h-5" />
         <span>登出</span>
       </button>
+
+      {uploadError && (
+        <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+          {uploadError}
+        </div>
+      )}
+
+      {cropSource && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-dark-900 rounded-2xl w-full max-w-lg p-6 space-y-4 border border-gray-800">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">裁切頭像</h3>
+              <button
+                className="text-gray-400 hover:text-white"
+                onClick={() => {
+                  setCropSource(null)
+                  setUploadError('')
+                }}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="aspect-square w-full overflow-hidden rounded-2xl bg-dark-800 border border-gray-800 flex items-center justify-center">
+              <img
+                src={cropSource}
+                alt="Crop preview"
+                className="max-w-none"
+                style={{
+                  width: `${cropZoom * 100}%`,
+                  height: 'auto',
+                  objectFit: 'cover'
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs text-gray-400">縮放</label>
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.01}
+                value={cropZoom}
+                onChange={(e) => setCropZoom(Number(e.target.value))}
+                className="w-full accent-primary-500"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setCropSource(null)
+                  setUploadError('')
+                }}
+                className="px-4 py-2 rounded-lg text-gray-300 hover:bg-white/5"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => {
+                  if (!cropSource) return
+                  const img = new Image()
+                  img.onload = () => {
+                    const canvas = document.createElement('canvas')
+                    const size = 320
+                    canvas.width = size
+                    canvas.height = size
+                    const ctx = canvas.getContext('2d')
+                    if (!ctx) return
+                    const shorter = Math.min(img.width, img.height)
+                    const cropSize = shorter / cropZoom
+                    const sx = (img.width - cropSize) / 2
+                    const sy = (img.height - cropSize) / 2
+                    ctx.drawImage(img, sx, sy, cropSize, cropSize, 0, 0, size, size)
+                    const dataUrl = canvas.toDataURL('image/png')
+                    updateProfile({ avatar: dataUrl })
+                    setCropSource(null)
+                  }
+                  img.onerror = () => setUploadError('裁切失敗，請重試')
+                  img.src = cropSource
+                }}
+                className="px-4 py-2 rounded-lg bg-primary-500 text-dark-900 font-semibold"
+              >
+                完成裁切
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
