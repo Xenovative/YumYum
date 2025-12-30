@@ -16,6 +16,9 @@ import PartyDetail from './pages/PartyDetail'
 import Admin from './pages/Admin'
 import BarPortalLogin from './pages/BarPortalLogin'
 import BarPortal from './pages/BarPortal'
+import History from './pages/History'
+import Help from './pages/Help'
+import SettingsPage from './pages/Settings'
 
 export default function App() {
   return (
@@ -37,20 +40,10 @@ export default function App() {
         <Route path="admin" element={<Admin />} />
         <Route path="bar-portal/login" element={<BarPortalLogin />} />
         <Route path="bar-portal" element={<BarPortal />} />
-        {/* Placeholder routes */}
-        <Route path="history" element={<ComingSoon title="購買記錄" />} />
-        <Route path="help" element={<ComingSoon title="使用說明" />} />
-        <Route path="settings" element={<ComingSoon title="設定" />} />
+        <Route path="history" element={<History />} />
+        <Route path="help" element={<Help />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>
-  )
-}
-
-function ComingSoon({ title }: { title: string }) {
-  return (
-    <div className="text-center py-12">
-      <h1 className="text-2xl font-bold mb-4">{title}</h1>
-      <p className="text-gray-400">即將推出</p>
-    </div>
   )
 }

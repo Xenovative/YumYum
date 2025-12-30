@@ -155,6 +155,11 @@ export const passesAPI = {
     return data;
   },
 
+  getHistory: async (params?: { status?: 'active' | 'expired'; from?: string; to?: string }) => {
+    const { data } = await api.get('/passes/history', { params });
+    return data;
+  },
+
   getById: async (id: string) => {
     const { data } = await api.get(`/passes/${id}`);
     return data;

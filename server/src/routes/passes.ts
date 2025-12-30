@@ -90,6 +90,63 @@ router.get('/my-passes', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
+// Purchase history with filters
+router.get('/history', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { status, from, to } = req.query;
+    const params: any[] = [req.userId];
+    const conditions = ['user_id = $1'];
+
+    if (status === 'active') {
+      conditions.push('is_active = true AND expiry_time > NOW()');
+    } else if (status === 'expired') {
+      conditions.push('(is_active = false OR expiry_time <= NOW())');
+    }
+
+    if (from) {
+      params.push(from);
+      conditions.push(`purchase_time >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`purchase_time <= $${params.length}`);
+    }
+
+    const result = await query(
+      `SELECT id, user_id, bar_id, bar_name, person_count, total_price, platform_fee, 
+              bar_payment, purchase_time, expiry_time, qr_code, is_active, 
+              transaction_id, payment_method
+       FROM passes
+       WHERE ${conditions.join(' AND ')}
+       ORDER BY purchase_time DESC
+       LIMIT 200`,
+      params
+    );
+
+    const passes = result.rows.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      barId: row.bar_id,
+      barName: row.bar_name,
+      personCount: row.person_count,
+      totalPrice: parseFloat(row.total_price),
+      platformFee: parseFloat(row.platform_fee),
+      barPayment: parseFloat(row.bar_payment),
+      purchaseTime: row.purchase_time,
+      expiryTime: row.expiry_time,
+      qrCode: row.qr_code,
+      isActive: row.is_active,
+      transactionId: row.transaction_id,
+      paymentMethod: row.payment_method
+    }));
+
+    res.json(passes);
+  } catch (error) {
+    console.error('Get passes history error:', error);
+    res.status(500).json({ error: 'Failed to fetch purchase history' });
+  }
+});
+
 router.get('/active', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const result = await query(
