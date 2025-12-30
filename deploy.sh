@@ -1,10 +1,15 @@
 #!/bin/bash
 
 # OneNightDrink VPS Deployment Script
-# Usage: ./deploy.sh [frontend-port] [api-port]
+# Usage: ./deploy.sh [frontend-port] [api-port] [--noseed]
 
 FRONTEND_PORT=${1:-8080}
 API_PORT=${2:-3001}
+NO_SEED=false
+
+if [ "$3" == "--noseed" ]; then
+    NO_SEED=true
+fi
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="onenightdrink"
 
@@ -70,10 +75,14 @@ if [ $? -ne 0 ]; then
 fi
 
 # Seed database (only if needed)
-read -p "Seed database with initial bar data? (y/N) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    npm run seed
+if [ "$NO_SEED" = false ]; then
+    read -p "Seed database with initial bar data? (y/N) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        npm run seed
+    fi
+else
+    echo "Skipping seed (flag --noseed supplied)"
 fi
 
 # Install PM2 if not present

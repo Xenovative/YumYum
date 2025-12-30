@@ -20,7 +20,10 @@ router.get('/', async (req, res) => {
     const status = req.query.status || 'open';
     
     const result = await query(
-      `SELECT p.id, p.host_id, p.host_name, p.host_display_name, p.host_avatar,
+      `SELECT p.id, p.host_id,
+              COALESCE(u.name, p.host_name) as host_name,
+              COALESCE(u.display_name, p.host_display_name) as host_display_name,
+              COALESCE(u.avatar, p.host_avatar) as host_avatar,
               p.pass_id, p.bar_id, p.bar_name, p.title, p.description,
               p.max_female_guests, p.party_time, p.status, p.created_at,
               u.gender as host_gender, u.age as host_age, u.height_cm as host_height_cm,
@@ -108,7 +111,10 @@ router.get('/', async (req, res) => {
 router.get('/my-hosted', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const result = await query(
-      `SELECT p.id, p.host_id, p.host_name, p.host_display_name, p.host_avatar,
+      `SELECT p.id, p.host_id,
+              COALESCE(u.name, p.host_name) as host_name,
+              COALESCE(u.display_name, p.host_display_name) as host_display_name,
+              COALESCE(u.avatar, p.host_avatar) as host_avatar,
               p.pass_id, p.bar_id, p.bar_name, p.title, p.description,
               p.max_female_guests, p.party_time, p.status, p.created_at,
               u.gender as host_gender, u.age as host_age, u.height_cm as host_height_cm,
@@ -187,7 +193,10 @@ router.get('/my-hosted', authenticateToken, async (req: AuthRequest, res) => {
 router.get('/my-joined', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const result = await query(
-      `SELECT p.id, p.host_id, p.host_name, p.host_display_name, p.host_avatar,
+      `SELECT p.id, p.host_id,
+              COALESCE(u.name, p.host_name) as host_name,
+              COALESCE(u.display_name, p.host_display_name) as host_display_name,
+              COALESCE(u.avatar, p.host_avatar) as host_avatar,
               p.pass_id, p.bar_id, p.bar_name, p.title, p.description,
               p.max_female_guests, p.party_time, p.status, p.created_at,
               u.gender as host_gender, u.age as host_age, u.height_cm as host_height_cm,
@@ -275,7 +284,10 @@ router.get('/my-joined', authenticateToken, async (req: AuthRequest, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const partyResult = await query(
-      `SELECT p.id, p.host_id, p.host_name, p.host_display_name, p.host_avatar,
+      `SELECT p.id, p.host_id,
+              COALESCE(u.name, p.host_name) as host_name,
+              COALESCE(u.display_name, p.host_display_name) as host_display_name,
+              COALESCE(u.avatar, p.host_avatar) as host_avatar,
               p.pass_id, p.bar_id, p.bar_name, p.title, p.description,
               p.max_female_guests, p.party_time, p.status, p.created_at,
               u.gender as host_gender, u.age as host_age, u.height_cm as host_height_cm,

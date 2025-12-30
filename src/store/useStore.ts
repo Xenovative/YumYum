@@ -385,9 +385,28 @@ export const useStore = create<AppState>()(
       updateProfile: async (updates) => {
         try {
           const updated = await authAPI.updateProfile(updates)
-          set((state) => ({
-            user: state.user ? { ...state.user, ...updated } : null
-          }))
+          set((state) => {
+            const user = state.user ? { ...state.user, ...updated } : null
+            if (!user) return { user: null }
+
+            const syncPartyUser = (party: Party): Party => ({
+              ...party,
+              hostAvatar: party.hostId === user.id ? user.avatar : party.hostAvatar,
+              hostTagline: party.hostId === user.id ? user.tagline : party.hostTagline,
+              hostDisplayName: party.hostId === user.id ? (user.displayName || user.name) : party.hostDisplayName,
+              currentGuests: party.currentGuests.map(g =>
+                g.userId === user.id
+                  ? { ...g, avatar: user.avatar, tagline: user.tagline, displayName: user.displayName || user.name }
+                  : g
+              )
+            })
+
+            return {
+              user,
+              parties: state.parties.map(syncPartyUser),
+              adminParties: state.adminParties?.map(syncPartyUser) || state.adminParties,
+            }
+          })
         } catch (error) {
           console.error('Failed to update profile:', error)
           throw error
