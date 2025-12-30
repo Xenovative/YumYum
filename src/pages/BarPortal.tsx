@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ScanLine, Search, CheckCircle2, XCircle, Loader2, RefreshCw, Edit3, Save, ShieldCheck, LogOut } from 'lucide-react'
-import { QrScanner } from '@yudiel/react-qr-scanner'
+import { Scanner } from '@yudiel/react-qr-scanner'
 import { format } from 'date-fns'
 import { useStore } from '../store/useStore'
 import { barPortalAPI } from '../services/api'
@@ -212,12 +212,13 @@ export default function BarPortal() {
         </div>
         {scannerOpen && (
           <div className="rounded-lg overflow-hidden border border-gray-800">
-            <QrScanner
-              onDecode={(result: string) => {
-                if (result) handleScan(result)
+            <Scanner
+              onScan={(detected) => {
+                const code = detected?.[0]?.rawValue
+                if (code) handleScan(code)
               }}
               onError={handleScanError}
-              videoStyle={{ width: '100%' }}
+              styles={{ container: { width: '100%' }, video: { width: '100%' } }}
             />
           </div>
         )}
