@@ -1107,6 +1107,45 @@ export default function Admin() {
             </div>
           )}
 
+          {/* Bar Accounts List */}
+          <div className="glass rounded-xl p-4 space-y-3 border border-white/5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold flex items-center gap-2">
+                <UserCog className="w-5 h-5" />
+                酒吧帳號列表 ({barUsers.length})
+              </h3>
+              {barUsersLoading && (
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  載入中...
+                </div>
+              )}
+            </div>
+            {barUsers.length === 0 ? (
+              <p className="text-sm text-gray-500">尚無帳號</p>
+            ) : (
+              <div className="space-y-3">
+                {barUsers.map((user) => {
+                  const barName = bars.find((b) => b.id === user.barId)?.name || user.barId
+                  return (
+                    <div key={user.id} className="flex justify-between items-center py-2 border-b border-gray-800 last:border-0">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium truncate">{user.displayName || user.email}</p>
+                        </div>
+                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                        <p className="text-xs text-gray-500 truncate mt-0.5">酒吧：{barName}</p>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded ${user.isActive ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+                        {user.isActive ? '啟用' : '停用'}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Create Bar Account */}
           <div className="glass rounded-xl p-4 space-y-3 border border-white/5">
             <div className="flex items-center justify-between">
