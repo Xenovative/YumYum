@@ -253,6 +253,11 @@ export const adminAPI = {
     const { data } = await api.put('/admin/payment-settings', settings, getAdminHeaders());
     return data;
   },
+
+  purgeDatabase: async (scope: 'all' | 'parties' | 'passes' | 'bars' = 'all') => {
+    const { data } = await api.post('/admin/db/purge', { scope }, getAdminHeaders());
+    return data;
+  },
 };
 
 // Bar Portal API (separate token)

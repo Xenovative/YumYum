@@ -13,8 +13,12 @@ export default function Admin() {
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [isSavingBar, setIsSavingBar] = useState(false)
   const [isSavingBarUser, setIsSavingBarUser] = useState(false)
+  const [isPurging, setIsPurging] = useState(false)
+  const [purgeMessage, setPurgeMessage] = useState<string | null>(null)
+  const [purgeScope, setPurgeScope] = useState<'all' | 'parties' | 'passes' | 'bars'>('all')
+  const [purgeConfirm, setPurgeConfirm] = useState('')
   
-  const [activeTab, setActiveTab] = useState<'payments' | 'parties' | 'members' | 'bars' | 'settings'>('payments')
+  const [activeTab, setActiveTab] = useState<'payments' | 'parties' | 'members' | 'bars' | 'settings' | 'database'>('payments')
   const [scanResult, setScanResult] = useState<any>(null)
   const [manualCode, setManualCode] = useState('')
   const store = useStore()
@@ -310,6 +314,24 @@ export default function Admin() {
     }
   }
 
+  const handlePurge = async () => {
+    if (purgeConfirm.trim().toUpperCase() !== 'PURGE') {
+      setPurgeMessage('請輸入 PURGE 以確認執行')
+      return
+    }
+    setIsPurging(true)
+    setPurgeMessage(null)
+    try {
+      const res = await adminAPI.purgeDatabase(purgeScope)
+      setPurgeMessage(`已清除範圍：${res.scope || purgeScope}`)
+      setPurgeConfirm('')
+    } catch (err: any) {
+      setPurgeMessage(err?.response?.data?.error || '清除失敗，請稍後再試')
+    } finally {
+      setIsPurging(false)
+    }
+  }
+
   // Stats
   const totalPasses = paymentPasses.length
   const activePasses24h = paymentPasses.filter(p => {
@@ -323,6 +345,7 @@ export default function Admin() {
     { id: 'members', label: '會員管理', icon: UserCog },
     { id: 'bars', label: '酒吧管理', icon: Store },
     { id: 'settings', label: '付款設定', icon: Settings },
+    { id: 'database', label: '資料庫維護', icon: Trash2 },
   ] as const
 
   const partyOpenCount = partyList.filter(p => p.status === 'open').length
@@ -441,6 +464,60 @@ export default function Admin() {
           }`}
         >
           {adminDataBannerMessage}
+        </div>
+      )}
+
+      {/* Database Maintenance Tab */}
+      {activeTab === 'database' && (
+        <div className="space-y-4">
+          <div className="glass rounded-xl p-4 border border-red-500/40 bg-red-500/5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-red-300">危險操作：資料庫清除</h3>
+                <p className="text-xs text-gray-400 mt-1">選擇範圍並輸入「PURGE」確認後執行</p>
+              </div>
+              <span className="text-xs text-red-300 bg-red-500/10 px-2 py-1 rounded">不可復原</span>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">清除範圍</label>
+                <select
+                  value={purgeScope}
+                  onChange={(e) => setPurgeScope(e.target.value as typeof purgeScope)}
+                  className="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:border-red-400 focus:outline-none"
+                >
+                  <option value="all">全部資料（酒局、會員、passes、酒吧帳號）</option>
+                  <option value="parties">酒局與參加者</option>
+                  <option value="passes">Passes</option>
+                  <option value="bars">酒吧與酒吧帳號</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">確認字樣</label>
+                <input
+                  value={purgeConfirm}
+                  onChange={(e) => setPurgeConfirm(e.target.value)}
+                  placeholder="輸入 PURGE"
+                  className="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:border-red-400 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="mt-3 flex gap-3 items-center">
+              <button
+                onClick={handlePurge}
+                disabled={isPurging}
+                className="bg-red-500 text-dark-900 px-4 py-2 rounded-lg font-semibold text-sm disabled:opacity-60 flex items-center gap-2"
+              >
+                {isPurging && <Loader2 className="w-4 h-4 animate-spin" />}
+                執行清除
+              </button>
+              {purgeMessage && (
+                <span className="text-xs text-red-200">{purgeMessage}</span>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

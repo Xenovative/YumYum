@@ -262,7 +262,7 @@ export default function Profile() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="aspect-square w-full overflow-hidden rounded-2xl bg-dark-800 border border-gray-800 flex items-center justify-center">
+            <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-dark-800 border border-gray-800 flex items-center justify-center">
               <img
                 src={cropSource}
                 alt="Crop preview"
@@ -273,6 +273,9 @@ export default function Profile() {
                   objectFit: 'cover'
                 }}
               />
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-white/80 shadow-[0_0_0_2000px_rgba(0,0,0,0.55)]" />
+              </div>
             </div>
             <div className="space-y-2">
               <label className="text-xs text-gray-400">縮放</label>
