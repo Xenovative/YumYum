@@ -6,21 +6,14 @@ import SEO from './SEO'
 export default function Layout() {
   const location = useLocation()
   const path = location.pathname
-  const [showAgeGate, setShowAgeGate] = useState<boolean>(true)
+  const [showAgeGate, setShowAgeGate] = useState(true)
 
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem('age_confirmed') : null
-    if (stored === 'true') {
-      setShowAgeGate(false)
-    } else {
-      setShowAgeGate(true)
-    }
-  }, [])
+    setShowAgeGate(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [path])
 
-  const handleConfirmAge = () => {
-    localStorage.setItem('age_confirmed', 'true')
-    setShowAgeGate(false)
-  }
+  const handleConfirmAge = () => setShowAgeGate(false)
 
   const meta = (() => {
     if (path.startsWith('/bar/')) {
